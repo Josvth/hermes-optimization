@@ -34,6 +34,9 @@ def instances_to_passes_fast(instances_df, step_duration = 1.0):
                 # Select instances between indexes
                 pass_instances = group.loc[i_l:i - 1]
 
+                if pass_instances.tof.values[1] == pass_instances.tof.values[0]:
+                    pass
+
                 # Create pass df
                 p = {"StartTof": pass_instances.iloc[0].tof,
                      "StopTof": pass_instances.iloc[-1].tof,
