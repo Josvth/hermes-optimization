@@ -24,7 +24,7 @@ def design_vector_bounds(var_count, indices, system_parameters):
 
     mapping_xl = dict()
     mapping_xl['pass'] = 0
-    mapping_xl['power'] = min(system_parameters.Ptx_dBm_list)
+    mapping_xl['power'] = min(system_parameters.Ptx_dBm_bounds)
     mapping_xl['antenna'] = min(system_parameters.Gtx_dBi_list)
     mapping_xl['bandwidth'] = 0
     mapping_xl['rolloff'] = 0
@@ -32,7 +32,7 @@ def design_vector_bounds(var_count, indices, system_parameters):
 
     mapping_xu = dict()
     mapping_xu['pass'] = 1
-    mapping_xu['power'] = max(system_parameters.Ptx_dBm_list)
+    mapping_xu['power'] = max(system_parameters.Ptx_dBm_bounds)
     mapping_xu['antenna'] = max(system_parameters.Gtx_dBi_list)
     mapping_xu['bandwidth'] = len(system_parameters.B_Hz_list) - 1
     mapping_xu['rolloff'] = len(system_parameters.alpha_list) - 1
@@ -53,8 +53,8 @@ def design_vector_default_scm(var_count, indices, real_power = False):
 
     mapping_mask = dict()
     mapping_mask['pass'] = "bin"
-    mapping_mask['power'] = "real" if real_power else "int"
-    mapping_mask['antenna'] = "int"
+    mapping_mask['power'] = "real"
+    mapping_mask['antenna'] = "real"
     mapping_mask['bandwidth'] = "int"
     mapping_mask['rolloff'] = "int"
     mapping_mask['modcod'] = "int"
@@ -95,8 +95,8 @@ class SystemParameters:
     eta_bitsym_list = [2.6460120]  # Spectral efficiency in for the selectable modulation per pass in [bits/symbol]
 
     # Transmitter
-    Ptx_dBm_list = list(range(10, 40, 5))  # List of selectable powers per pass in [dBm]
-    Gtx_dBi_list = [20]  # List of selectable antenna gains in [dBi]
+    Ptx_dBm_bounds = (10, 40) # Bounds of selectable power per pass in [dBm]
+    Gtx_dBi_list = (20, 20)  # Bounds of selectable antenna gains in [dBi]
 
     # Receiver
     GT_dBK = 13.2  # Receiver G/T figure in [dB/K]
