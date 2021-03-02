@@ -17,23 +17,23 @@ def design_vector_indices(N):
     return total_count, indices
 
 
-def design_vector_bounds(var_count, indices, system_parameters, real_power = False):
+def design_vector_bounds(var_count, indices, system_parameters):
     # Generates the integer bounds for the design vector
     xl = [0] * var_count
     xu = [0] * var_count
 
     mapping_xl = dict()
     mapping_xl['pass'] = 0
-    mapping_xl['power'] = min(system_parameters.Ptx_dBm_list) if real_power else 0
-    mapping_xl['antenna'] = 0
+    mapping_xl['power'] = min(system_parameters.Ptx_dBm_list)
+    mapping_xl['antenna'] = min(system_parameters.Gtx_dBi_list)
     mapping_xl['bandwidth'] = 0
     mapping_xl['rolloff'] = 0
     mapping_xl['modcod'] = 0
 
     mapping_xu = dict()
     mapping_xu['pass'] = 1
-    mapping_xu['power'] = max(system_parameters.Ptx_dBm_list) if real_power else len(system_parameters.Ptx_dBm_list) - 1
-    mapping_xu['antenna'] = len(system_parameters.Gtx_dBi_list) - 1
+    mapping_xu['power'] = max(system_parameters.Ptx_dBm_list)
+    mapping_xu['antenna'] = max(system_parameters.Gtx_dBi_list)
     mapping_xu['bandwidth'] = len(system_parameters.B_Hz_list) - 1
     mapping_xu['rolloff'] = len(system_parameters.alpha_list) - 1
     mapping_xu['modcod'] = len(system_parameters.EsN0_req_dB_list) - 1

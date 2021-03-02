@@ -15,7 +15,7 @@ from notebooks.optimization_problems.design_vector import design_vector_indices,
 class LinkBudgetProblem(Problem):
 
     def __init__(self, instances_df, system_parameters, single_power=True, *args, **kwargs):
-        self.instances_df = instances_df
+        #self.instances_df = instances_df
         self.sys_param = system_parameters
         self.N_passes = int(np.max(instances_df.index.get_level_values('p').unique().values))
         self.single_power = single_power
@@ -61,8 +61,8 @@ class LinkBudgetProblem(Problem):
         tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
         fspl_dB_list = List(
             compress(self.fspl_dB_list, sel_pass))  # List of free-space path losses of the selected passes
-        Ptx_dBm_list = List(map(self.sys_param.Ptx_dBm_list.__getitem__, design_vector['power']))
-        Gtx_dBi = self.sys_param.Gtx_dBi_list[design_vector['antenna'][0]]
+        Ptx_dBm_list = design_vector['power']
+        Gtx_dBi = design_vector['antenna']
         B_Hz_list = List(map(self.sys_param.B_Hz_list.__getitem__, design_vector['bandwidth']))
         alpha_list = List(map(self.sys_param.alpha_list.__getitem__, design_vector['rolloff']))
         EsN0_req_dB_list = List(map(self.sys_param.EsN0_req_dB_list.__getitem__, design_vector['modcod']))
@@ -70,7 +70,7 @@ class LinkBudgetProblem(Problem):
 
         # Option to simplify to one power selection for all passes
         if self.single_power:
-            Ptx_dBm_list = List([self.sys_param.Ptx_dBm_list[design_vector['power'][0]]] * len(Ptx_dBm_list))
+            Ptx_dBm_list = [Ptx_dBm_list[0]] * len(Ptx_dBm_list)
 
         f_throughput = compute_passes_throughput(tof_s_list, fspl_dB_list,
                                                  Ptx_dBm_list, Gtx_dBi, self.sys_param.GT_dBK, B_Hz_list,
