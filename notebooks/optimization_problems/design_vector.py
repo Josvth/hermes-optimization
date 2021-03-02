@@ -25,7 +25,7 @@ def design_vector_bounds(var_count, indices, system_parameters):
     mapping_xl = dict()
     mapping_xl['pass'] = 0
     mapping_xl['power'] = min(system_parameters.Ptx_dBm_bounds)
-    mapping_xl['antenna'] = min(system_parameters.Gtx_dBi_list)
+    mapping_xl['antenna'] = min(system_parameters.Gtx_dBi_bounds)
     mapping_xl['bandwidth'] = 0
     mapping_xl['rolloff'] = 0
     mapping_xl['modcod'] = 0
@@ -33,7 +33,7 @@ def design_vector_bounds(var_count, indices, system_parameters):
     mapping_xu = dict()
     mapping_xu['pass'] = 1
     mapping_xu['power'] = max(system_parameters.Ptx_dBm_bounds)
-    mapping_xu['antenna'] = max(system_parameters.Gtx_dBi_list)
+    mapping_xu['antenna'] = max(system_parameters.Gtx_dBi_bounds)
     mapping_xu['bandwidth'] = len(system_parameters.B_Hz_list) - 1
     mapping_xu['rolloff'] = len(system_parameters.alpha_list) - 1
     mapping_xu['modcod'] = len(system_parameters.EsN0_req_dB_list) - 1
@@ -96,7 +96,7 @@ class SystemParameters:
 
     # Transmitter
     Ptx_dBm_bounds = (10, 40) # Bounds of selectable power per pass in [dBm]
-    Gtx_dBi_list = (20, 20)  # Bounds of selectable antenna gains in [dBi]
+    Gtx_dBi_bounds = (20, 20) # Bounds of selectable antenna gains in [dBi]
 
     # Receiver
     GT_dBK = 13.2  # Receiver G/T figure in [dB/K]
