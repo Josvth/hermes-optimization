@@ -78,8 +78,7 @@ class LinkBudgetProblem(Problem):
         f_energy = compute_passes_energy_simplified(tof_s_list, Ptx_dBm_list)
 
         # Compute minimum throughput constraint
-        #g_minimum = (f_throughput == 0) * -1.0
-        g_minimum = -1.0
+        g_minimum = (f_throughput == 0) * 1.0
 
         out["F"] = [-1 * f_throughput, f_energy]
         out["G"] = np.concatenate([g_overlap, np.array([g_minimum])])
