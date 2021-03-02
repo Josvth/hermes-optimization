@@ -62,7 +62,7 @@ class LinkBudgetProblem(Problem):
         fspl_dB_list = List(
             compress(self.fspl_dB_list, sel_pass))  # List of free-space path losses of the selected passes
         Ptx_dBm_list = design_vector['power']
-        Gtx_dBi = design_vector['antenna']
+        Gtx_dBi = design_vector['antenna'][0]
         B_Hz_list = List(map(self.sys_param.B_Hz_list.__getitem__, design_vector['bandwidth']))
         alpha_list = List(map(self.sys_param.alpha_list.__getitem__, design_vector['rolloff']))
         EsN0_req_dB_list = List(map(self.sys_param.EsN0_req_dB_list.__getitem__, design_vector['modcod']))
