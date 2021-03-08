@@ -4,19 +4,23 @@ import numpy as np
 from numba.typed import List
 from pymoo.model.problem import Problem
 
-from hermes.postprocessing import generate_passes_df_reduced, generate_grouped_passed_df, generate_pass_range_list, \
-    generate_pass_tof_list
-
-from models.models import compute_overlap_matrix, compute_contact_time, compute_passes_fspl, compute_passes_throughput, compute_passes_energy_simplified
+from hermes.postprocessing import generate_grouped_passed_df, generate_pass_range_list, \
+    generate_pass_tof_list, generate_pass_r_ab_list
+from models.models import compute_overlap_matrix, compute_passes_fspl, compute_passes_elevation_angles, \
+    compute_passes_throughput_visibility, \
+    compute_passes_energy_simplified_visibility
+from notebooks.optimization_problems.constraints import Requirements
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
 
 
-class LinkBudgetProblem(Problem):
+class LinkBudgetVisibilityProblem(Problem):
 
-    def __init__(self, instances_df, system_parameters, single_power=True, *args, **kwargs):
+    def __init__(self, instances_df, system_parameters, requirements = Requirements(), single_power=True, *args, **kwargs):
         #self.instances_df = instances_df
         self.sys_param = system_parameters
+        self.reqs = requirements
+
         self.N_passes = int(np.max(instances_df.index.get_level_values('p').unique().values))
         self.single_power = single_power
 
@@ -29,10 +33,14 @@ class LinkBudgetProblem(Problem):
         # Compute overlap matrix
         self.O_matrix = compute_overlap_matrix(self.b_tofs, self.e_tofs)
 
-        # Compute free space path loss
+        # Compute variables needed during pass
         self.tof_s_list = generate_pass_tof_list(grouped_passes_df)
+
         range_m_list = generate_pass_range_list(grouped_passes_df)
         self.fspl_dB_list = compute_passes_fspl(range_m_list, self.sys_param.fc_Hz)
+
+        r_ab_m_list = generate_pass_r_ab_list(grouped_passes_df)
+        self.theta_rad_list = compute_passes_elevation_angles(r_ab_m_list)
 
         # Get design vector indices and bounds
         self.x_length, self.x_indices = design_vector_indices(self.N_passes)
@@ -72,13 +80,16 @@ class LinkBudgetProblem(Problem):
         if self.single_power:
             Ptx_dBm_list = [design_vector['power'][0]] * len(Ptx_dBm_list)
 
-        _, f_throughput = compute_passes_throughput(tof_s_list, fspl_dB_list,
+        theta_rad_list = List(compress(self.theta_rad_list, sel_pass))
+
+        linktime_s_list, f_throughput = compute_passes_throughput_visibility(tof_s_list, theta_rad_list, fspl_dB_list,
                                                  Ptx_dBm_list, Gtx_dBi_list, self.sys_param.GT_dBK, B_Hz_list,
                                                  alpha_list, EsN0_req_dB_list, eta_bitsym_list, self.sys_param.margin_dB)
-        f_energy = compute_passes_energy_simplified(tof_s_list, Ptx_dBm_list)
+
+        f_energy = compute_passes_energy_simplified_visibility(linktime_s_list, Ptx_dBm_list)
 
         # Compute minimum throughput constraint
-        g_minimum = (f_throughput == 0) * 1.0
+        g_minimum = self.reqs.min_throughput - f_throughput
 
         out["F"] = [-1 * f_throughput, f_energy]
         out["G"] = np.concatenate([g_overlap, np.array([g_minimum])])

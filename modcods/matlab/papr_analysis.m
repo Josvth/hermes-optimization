@@ -24,14 +24,15 @@ opts = setvaropts(opts, ["order", "rate", "Label", "papr"], "EmptyFieldRule", "a
 % Import the data
 dvbs2 = readtable("dvbs2.csv", opts);
 
+%% 
 %%
 papr = zeros(1, height(dvbs2));
 
 Nsym = 10000;
 
-Nspan = 6;           % Filter span in symbol durations
-beta = 0.35;         % Roll-off factor
-sampsPerSym = 8;    % Upsampling factor
+Nspan = 6;              % Filter span in symbol durations
+beta = 0.35;            % Roll-off factor
+sampsPerSym = 8;        % Upsampling factor
 
 rctFilt = comm.RaisedCosineTransmitFilter(...
   'Shape',                  'Normal', ...

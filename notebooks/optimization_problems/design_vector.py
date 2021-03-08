@@ -11,7 +11,7 @@ def design_vector_indices(N):
     indices, total_count = _add_vars(indices, total_count, 'power', N)
     indices, total_count = _add_vars(indices, total_count, 'antenna', 1)
     indices, total_count = _add_vars(indices, total_count, 'bandwidth', N)
-    indices, total_count = _add_vars(indices, total_count, 'rolloff', N)
+    indices, total_count = _add_vars(indices, total_count, 'rolloff', 1)
     indices, total_count = _add_vars(indices, total_count, 'modcod', N)
 
     return total_count, indices
@@ -86,11 +86,11 @@ def design_vector_default_scm(var_count, indices, real_power = False):
 
 class SystemParameters:
     # Spectral
-    fc_Hz = 30e9  # Fixed carrier frequency in [Hz]
-    B_Hz_list = [20e6]  # Bandwidth in Hz
+    fc_Hz = 20e9  # Fixed carrier frequency in [Hz]
+    B_Hz_list = [20e6]  # Bandwidth in [Hz]
 
     # Waveform
-    alpha_list = [0.35]  # Roll-off factor
+    alpha_list = [0.35]  # Roll-off factor for all passes
     EsN0_req_dB_list = [10.69]  # List of required EsN0 for the selectable modulation per pass in [dB]
     eta_bitsym_list = [2.6460120]  # Spectral efficiency in for the selectable modulation per pass in [bits/symbol]
 
@@ -101,6 +101,8 @@ class SystemParameters:
     # Receiver
     GT_dBK = 13.2  # Receiver G/T figure in [dB/K]
 
+    # Margin
+    margin_dB = 0.0 # Link margin in [dB]
 
 def explode_design_vector(x, N, indices=None):
     design_vector = dict()
