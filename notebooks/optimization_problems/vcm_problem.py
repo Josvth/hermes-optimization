@@ -8,7 +8,7 @@ from hermes.postprocessing import generate_grouped_passed_df, generate_pass_rang
     generate_pass_tof_list, generate_pass_r_ab_list
 from models.models import compute_overlap_matrix, compute_passes_fspl, compute_passes_elevation_angles, \
     compute_passes_energy_maee, compute_passes_throughput, compute_passes_throughput_min_power, \
-    compute_passes_throughput_max_vcm
+    compute_passes_throughput_max_vcm, compute_passes_throughput_opt_vcm
 from notebooks.optimization_problems.constraints import Requirements
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
@@ -75,12 +75,12 @@ class VCMProblem(Problem):
 
             tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
             fspl_dB_list = List(compress(self.fspl_dB_list, sel_pass))
-            Ptx_dBm = design_vector['power'][0]
+            Ptx_dBm_array = design_vector['power'][sel_pass]
             Gtx_dBi = design_vector['antenna'][0]
             B_Hz = self.sys_param.B_Hz_list[design_vector['bandwidth'][0]]
             alpha = self.sys_param.alpha_list[design_vector['rolloff'][0]]
             max_vcm = design_vector['modcod'][0]
-            #max_vcm = 27
+            max_vcm = 27
             #print(max_vcm)
             EsN0_req_dB_array = self.sys_param.EsN0_req_dB_list
             eta_bitsym_array = self.sys_param.eta_bitsym_list
@@ -88,13 +88,13 @@ class VCMProblem(Problem):
 
             theta_rad_list = List(compress(self.theta_rad_list, sel_pass))
 
-            linktime_s_array, f_throughput, vcm_array = compute_passes_throughput_max_vcm(tof_s_list, fspl_dB_list,
-                                                Ptx_dBm, Gtx_dBi,
+            linktime_s_array, f_throughput, vcm_array = compute_passes_throughput_opt_vcm(tof_s_list, fspl_dB_list,
+                                                Ptx_dBm_array, Gtx_dBi,
                                                 self.sys_param.GT_dBK, B_Hz,
                                                 alpha, max_vcm, EsN0_req_dB_array,
                                                 eta_bitsym_array, self.sys_param.margin_dB)
 
-            Ptx_dBm_array = np.array([Ptx_dBm] * np.sum(sel_pass))
+            #Ptx_dBm_array = np.array([Ptx_dBm] * np.sum(sel_pass))
             f_energy = compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array[vcm_array])
 
             # g_all_usefull = np.any(linktime_s_array <= 0.0) * 1.0

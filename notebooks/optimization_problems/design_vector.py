@@ -8,7 +8,7 @@ def design_vector_indices(N):
     total_count = 0
 
     indices, total_count = _add_vars(indices, total_count, 'pass', N)
-    indices, total_count = _add_vars(indices, total_count, 'power', 1)
+    indices, total_count = _add_vars(indices, total_count, 'power', N)
     indices, total_count = _add_vars(indices, total_count, 'antenna', 1)
     indices, total_count = _add_vars(indices, total_count, 'bandwidth', 1)
     indices, total_count = _add_vars(indices, total_count, 'rolloff', 1)
