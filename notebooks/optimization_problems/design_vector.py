@@ -8,9 +8,9 @@ def design_vector_indices(N):
     total_count = 0
 
     indices, total_count = _add_vars(indices, total_count, 'pass', N)
-    indices, total_count = _add_vars(indices, total_count, 'power', N)
+    indices, total_count = _add_vars(indices, total_count, 'power', 1)
     indices, total_count = _add_vars(indices, total_count, 'antenna', 1)
-    indices, total_count = _add_vars(indices, total_count, 'bandwidth', N)
+    indices, total_count = _add_vars(indices, total_count, 'bandwidth', 1)
     indices, total_count = _add_vars(indices, total_count, 'rolloff', 1)
     indices, total_count = _add_vars(indices, total_count, 'modcod', N)
 
@@ -34,8 +34,8 @@ def design_vector_bounds(var_count, indices, system_parameters):
     mapping_xu['pass'] = 1
     mapping_xu['power'] = max(system_parameters.Ptx_dBm_bounds)
     mapping_xu['antenna'] = max(system_parameters.Gtx_dBi_bounds)
-    mapping_xu['bandwidth'] = len(system_parameters.B_Hz_list) - 1
-    mapping_xu['rolloff'] = len(system_parameters.alpha_list) - 1
+    mapping_xu['bandwidth'] = 0 #len(system_parameters.B_Hz_list) - 1
+    mapping_xu['rolloff'] = 0 #len(system_parameters.alpha_list) - 1
     mapping_xu['modcod'] = len(system_parameters.EsN0_req_dB_list) - 1
 
     for k, v in indices.items():
@@ -73,13 +73,13 @@ def design_vector_default_scm(var_count, indices, real_power = False):
     crossover = MixedVariableCrossover(mask, {
         "bin": get_crossover("bin_hux"),
         "int": get_crossover("int_sbx", prob=1.0, eta=3.0),
-        "real": get_crossover("real_sbx", prob=0.9, eta=15),
+        "real": get_crossover("real_sbx", prob=1.0, eta=3.0),
     })
 
     mutation = MixedVariableMutation(mask, {
         "bin": get_mutation("bin_bitflip"),
         "int": get_mutation("int_pm", eta=3.0),
-        "real": get_mutation("real_pm", eta=20),
+        "real": get_mutation("real_pm", eta=3.0),
     })
 
     return sampling, crossover, mutation
