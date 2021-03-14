@@ -12,7 +12,7 @@ def design_vector_indices(N):
     indices, total_count = _add_vars(indices, total_count, 'antenna', 1)
     indices, total_count = _add_vars(indices, total_count, 'bandwidth', 1)
     indices, total_count = _add_vars(indices, total_count, 'rolloff', 1)
-    indices, total_count = _add_vars(indices, total_count, 'modcod', N)
+    indices, total_count = _add_vars(indices, total_count, 'modcod', 1)
 
     return total_count, indices
 
@@ -78,7 +78,7 @@ def design_vector_default_scm(var_count, indices, real_power = False):
 
     mutation = MixedVariableMutation(mask, {
         "bin": get_mutation("bin_bitflip"),
-        "int": get_mutation("int_pm", eta=3.0),
+        "int": get_mutation("int_pm", eta=10.0),
         "real": get_mutation("real_pm", eta=3.0),
     })
 

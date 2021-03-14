@@ -46,7 +46,7 @@ def compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz):
 @njit
 def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym, margin_dB):
     SNR_dB = compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
-    EsN0_dB = SNR_dB * (1 + alpha)  # Es/N0 at the receiver in dB
+    EsN0_dB = SNR_dB - 10 * np.log10(1 / (1 + alpha))  # Es/N0 at the receiver in dB
 
     positive_margin = EsN0_dB >= EsN0_req_dB + margin_dB  # True values where there is a positive link margin
 
@@ -60,18 +60,20 @@ def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, Es
 
     return link_time, throughput_bits
 
+
 @njit
-def compute_throughput_min_power(tof_s, fspl_dB, Ptx_dBm_max, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym, margin_dB):
+def compute_throughput_min_power(tof_s, fspl_dB, Ptx_dBm_max, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym,
+                                 margin_dB):
     SNR_dB = compute_snr(fspl_dB, 0.0, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
-    EsN0_dB = SNR_dB * (1 + alpha)  # Es/N0 at the receiver in dB
+    EsN0_dB = SNR_dB - 10 * np.log10(1 / (1 + alpha))  # Es/N0 at the receiver in dB
 
-    margin_no_Ptx = EsN0_dB - (EsN0_req_dB + margin_dB) # Margin before adding transmitter power
+    margin_no_Ptx = EsN0_dB - (EsN0_req_dB + margin_dB)  # Margin before adding transmitter power
 
-    req_Ptx_dBm = -1 * np.minimum(margin_no_Ptx, 0) # Required Ptx to close the link
+    req_Ptx_dBm = -1 * np.minimum(margin_no_Ptx, 0)  # Required Ptx to close the link
 
-    Ptx_dBm = np.minimum(np.max(req_Ptx_dBm), Ptx_dBm_max) # The used transmission power
+    Ptx_dBm = np.minimum(np.max(req_Ptx_dBm), Ptx_dBm_max)  # The used transmission power
 
-    margin = margin_no_Ptx + Ptx_dBm # Margins after adding transmitter power
+    margin = margin_no_Ptx + Ptx_dBm  # Margins after adding transmitter power
 
     positive_margin = margin >= 0  # True values where there is a positive link margin
 
@@ -84,6 +86,36 @@ def compute_throughput_min_power(tof_s, fspl_dB, Ptx_dBm_max, Gtx_dBi, GT_dBK, B
     throughput_bits = link_time * Rb_bits  # Throughput in bits per second
 
     return link_time, throughput_bits, Ptx_dBm
+
+
+@njit
+def compute_throughput_max_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym,
+                               min_margin_dB):
+    SNR_dB = compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
+    EsN0_dB = SNR_dB - 10 * np.log10(1 / (1 + alpha))  # Es/N0 at the receiver in dB
+
+    # Selection of modcod with smallest positive margin
+    margins_dB = np.min(EsN0_dB) - (EsN0_req_dB + min_margin_dB)  # Array with minimum margins for each modcod
+
+    margins_dB = np.maximum(margins_dB, 0)  # Make sure the margin is positive
+
+    modcod_sel = np.argmin(margins_dB)  # Select modcod with lowest margin
+
+    # Compute throughput with selected modcod
+    margin_dB = EsN0_dB - (EsN0_req_dB[modcod_sel] + min_margin_dB)
+
+    positive_margin = margin_dB >= 0  # True values where there is a positive link margin
+
+    dt = np.diff(tof_s)  # Deltas between each time step in s
+    link_time = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
+
+    Rs_syms = B_Hz / (1 + alpha)  # Symbol rate in symbols per second
+    Rb_bits = Rs_syms * eta_bitsym[modcod_sel]  # Data rate in bits per second
+
+    throughput_bits = link_time * Rb_bits  # Throughput in bits per second
+
+    return link_time, throughput_bits, modcod_sel
+
 
 @njit(parallel=True)
 def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm, Gtx_dBi_list, GT_dBK, B_Hz,
@@ -124,33 +156,32 @@ def compute_passes_throughput_min_power(tof_s_list, fspl_dB_list, Ptx_dBm_max, G
 
     for i in prange(len(throughput_bits_array)):
         linktime_s_array[i], throughput_bits_array[i], Ptx_dBm_array[i] = compute_throughput_min_power(
-                                                                            tof_s_list[i], fspl_dB_list[i],
-                                                                            Ptx_dBm_max, Gtx_dBi, GT_dBK,
-                                                                            B_Hz, alpha,
-                                                                            EsN0_req_dB_array[i],
-                                                                            eta_bitsym_array[i], margin_dB)
+            tof_s_list[i], fspl_dB_list[i],
+            Ptx_dBm_max, Gtx_dBi, GT_dBK,
+            B_Hz, alpha,
+            EsN0_req_dB_array[i],
+            eta_bitsym_array[i], margin_dB)
 
     return linktime_s_array, np.sum(throughput_bits_array), Ptx_dBm_array
 
 
-
-@njit(parrallel=True)
+@njit(parallel=True)
 def compute_passes_throughput_max_vcm(tof_s_list, fspl_dB_list, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz,
-                                        alpha, max_vcm, EsN0_req_dB_array, eta_bitsym_array, margin_dB):
-
+                                      alpha, max_vcm, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
     linktime_s_array = np.zeros(len(tof_s_list))
     throughput_bits_array = np.zeros(len(tof_s_list))
-    vcm_array = np.zeros(len(tof_s_list))
+    vcm_array = np.zeros(len(tof_s_list), dtype=np.int64)
 
     for i in prange(len(throughput_bits_array)):
         linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_max_vcm(
-                                                                        tof_s_list[i], fspl_dB_list[i],
-                                                                        Ptx_dBm, Gtx_dBi, GT_dBK,
-                                                                        B_Hz, alpha, max_vcm,
-                                                                        EsN0_req_dB_array,
-                                                                        eta_bitsym_array, margin_dB)
+            tof_s_list[i], fspl_dB_list[i],
+            Ptx_dBm, Gtx_dBi, GT_dBK,
+            B_Hz, alpha,
+            EsN0_req_dB_array[:max_vcm + 1],
+            eta_bitsym_array[:max_vcm + 1], min_margin_dB)
 
     return linktime_s_array, np.sum(throughput_bits_array), vcm_array
+
 
 ## Visbility functions
 @njit
@@ -175,7 +206,8 @@ def compute_gain_values(theta_rad, Gtx0_dBi):
     Gtx_dBi = (theta_rad <= 0.5 * theta_hpbw_rad) * Gtx0_dBi
     return Gtx_dBi
 
-#@njit(parallel=True)
+
+# @njit(parallel=True)
 def compute_passes_throughput_visibility(tof_s_list, theta_rad_list, fspl_dB_list, Ptx_dBm_array, Gtx0_dBi, GT_dBK,
                                          B_Hz_array,
                                          alpha_array, EsN0_req_dB_array, eta_bitsym_array, margin_dB):
@@ -195,7 +227,7 @@ def compute_passes_throughput_visibility(tof_s_list, theta_rad_list, fspl_dB_lis
 ## Energy functions
 @njit
 def compute_energy(linktime_s, Ptx_dBm, eta):
-    energy_J = (1/eta) * 10 ** ((Ptx_dBm - 30) / 10) * linktime_s  # Energy in J
+    energy_J = (1 / eta) * 10 ** ((Ptx_dBm - 30) / 10) * linktime_s  # Energy in J
     return energy_J
 
 
@@ -219,6 +251,8 @@ def compute_passes_energy_simplified_visibility(linktime_s_list, Ptx_dBm_list):
 
     return np.sum(energy_J_list)
 
+
+@njit
 def compute_passes_energy_maee(linktime_s_list, Ptx_dBm_array, eta_maee_list):
     energy_J_list = np.zeros(len(linktime_s_list))
 
