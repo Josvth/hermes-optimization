@@ -1,5 +1,6 @@
 from numba import njit, prange
 import numpy as np
+from numba.typed import List
 
 
 @njit
@@ -47,7 +48,7 @@ def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, Es
     SNR_dB = compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
     EsN0_dB = SNR_dB * (1 + alpha)  # Es/N0 at the receiver in dB
 
-    positive_margin = EsN0_dB >= EsN0_req_dB + margin_dB # True values where there is a positive link margin
+    positive_margin = EsN0_dB >= EsN0_req_dB + margin_dB  # True values where there is a positive link margin
 
     dt = np.diff(tof_s)  # Deltas between each time step in s
     link_time = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
@@ -60,19 +61,20 @@ def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, Es
     return link_time, throughput_bits
 
 
-# @njit(parallel=True)
-def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi_list, GT_dBK, B_Hz_list,
-                              alpha_list, EsN0_req_dB_list, eta_bitsym_list, margin_dB):
+@njit(parallel=True)
+def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi_list, GT_dBK, B_Hz_array,
+                              alpha_array, EsN0_req_dB_array, eta_bitsym_array, margin_dB):
+    linktime_s_array = np.zeros(len(tof_s_list))
+    throughput_bits_array = np.zeros(len(tof_s_list))
 
-    linktime_s_list = np.zeros(len(tof_s_list))
-    throughput_bits_list = np.zeros(len(tof_s_list))
+    for i in prange(len(throughput_bits_array)):
+        linktime_s_array[i], throughput_bits_array[i] = compute_throughput(tof_s_list[i], fspl_dB_list[i],
+                                                                         Ptx_dBm_list[i], Gtx_dBi_list[i], GT_dBK,
+                                                                         B_Hz_array[i], alpha_array[i],
+                                                                         EsN0_req_dB_array[i],
+                                                                         eta_bitsym_array[i], margin_dB)
 
-    for i in prange(len(throughput_bits_list)):
-        linktime_s_list[i], throughput_bits_list[i] = compute_throughput(tof_s_list[i], fspl_dB_list[i], Ptx_dBm_list[i], Gtx_dBi_list[i], GT_dBK,
-                                                     B_Hz_list[i], alpha_list[i], EsN0_req_dB_list[i],
-                                                     eta_bitsym_list[i], margin_dB)
-
-    return linktime_s_list, np.sum(throughput_bits_list)
+    return linktime_s_array, np.sum(throughput_bits_array)
 
 
 ## Visbility functions
@@ -88,31 +90,37 @@ def compute_elevation_angles(r_ab):
     theta = np.arctan2(np.sqrt(xy), r_ab[:, 2])
     return theta
 
+
 def compute_passes_elevation_angles(r_ab_m_list):
     return [compute_elevation_angles(r_ab_m_list[i]) for i in range(len(r_ab_m_list))]
 
-#@njit
+
 def compute_gain_values(theta_rad, Gtx0_dBi):
     theta_hpbw_rad = compute_hpbw(Gtx0_dBi)
     Gtx_dBi = (theta_rad <= 0.5 * theta_hpbw_rad) * Gtx0_dBi
     return Gtx_dBi
 
-
-def compute_passes_throughput_visibility(tof_s_list, theta_rad_list, fspl_dB_list, Ptx_dBm_list, Gtx0_dBi, GT_dBK, B_Hz_list,
-                                         alpha_list, EsN0_req_dB_list, eta_bitsym_list, margin_dB):
-    Gtx_dBi_list = [None] * len(tof_s_list)
+#@njit(parallel=True)
+def compute_passes_throughput_visibility(tof_s_list, theta_rad_list, fspl_dB_list, Ptx_dBm_array, Gtx0_dBi, GT_dBK,
+                                         B_Hz_array,
+                                         alpha_array, EsN0_req_dB_array, eta_bitsym_array, margin_dB):
+    Gtx_dBi_list = List(tof_s_list)
 
     for i in prange(len(Gtx_dBi_list)):
         Gtx_dBi_list[i] = compute_gain_values(theta_rad_list[i], Gtx0_dBi[i])
 
-    return compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi_list, GT_dBK, B_Hz_list,
-                                         alpha_list, EsN0_req_dB_list, eta_bitsym_list, margin_dB)
+    for i, l in enumerate([tof_s_list, theta_rad_list, fspl_dB_list, Gtx_dBi_list]):
+        if l._list_type is None:
+            print(['tof_s_list', 'theta_rad_list', 'fspl_dB_list', 'Gtx_dBi_list'][i])
+
+    return compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi_list, GT_dBK, B_Hz_array,
+                                     alpha_array, EsN0_req_dB_array, eta_bitsym_array, margin_dB)
 
 
 ## Energy functions
 @njit
-def compute_energy_simplified(linktime_s, Ptx_dBm):
-    energy_J = 10 ** ((Ptx_dBm - 30) / 10) * linktime_s  # Energy in J
+def compute_energy(linktime_s, Ptx_dBm, eta):
+    energy_J = (1/eta) * 10 ** ((Ptx_dBm - 30) / 10) * linktime_s  # Energy in J
     return energy_J
 
 
@@ -123,14 +131,23 @@ def compute_passes_energy_simplified(tof_s_list, Ptx_dBm_list):
     for i in prange(len(energy_J_list)):
         dt = np.diff(tof_s_list[i])
         linktime_s = np.sum(dt)
-        energy_J_list[i] = compute_energy_simplified(linktime_s, Ptx_dBm_list[i])
+        energy_J_list[i] = compute_energy(linktime_s, Ptx_dBm_list[i], 1.0)
 
     return np.sum(energy_J_list)
+
 
 def compute_passes_energy_simplified_visibility(linktime_s_list, Ptx_dBm_list):
     energy_J_list = np.zeros(len(linktime_s_list))
 
     for i in prange(len(energy_J_list)):
-        energy_J_list[i] = compute_energy_simplified(linktime_s_list[i], Ptx_dBm_list[i])
+        energy_J_list[i] = compute_energy(linktime_s_list[i], Ptx_dBm_list[i], 1.0)
+
+    return np.sum(energy_J_list)
+
+def compute_passes_energy_maee(linktime_s_list, Ptx_dBm_list, eta_maee_list):
+    energy_J_list = np.zeros(len(linktime_s_list))
+
+    for i in prange(len(energy_J_list)):
+        energy_J_list[i] = compute_energy(linktime_s_list[i], Ptx_dBm_list[i], eta_maee_list[i])
 
     return np.sum(energy_J_list)
