@@ -80,7 +80,7 @@ class VCMProblem(Problem):
             B_Hz = self.sys_param.B_Hz_list[design_vector['bandwidth'][0]]
             alpha = self.sys_param.alpha_list[design_vector['rolloff'][0]]
             max_vcm = design_vector['modcod'][0]
-            max_vcm = 27
+            #max_vcm = 27
             #print(max_vcm)
             EsN0_req_dB_array = self.sys_param.EsN0_req_dB_list
             eta_bitsym_array = self.sys_param.eta_bitsym_list
