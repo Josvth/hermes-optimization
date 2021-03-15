@@ -7,7 +7,8 @@ from pymoo.model.problem import Problem
 from hermes.postprocessing import generate_passes_df_reduced, generate_grouped_passed_df, generate_pass_range_list, \
     generate_pass_tof_list
 
-from models.models import compute_overlap_matrix, compute_contact_time, compute_passes_fspl, compute_passes_throughput, compute_passes_energy_simplified
+from models.models import compute_overlap_matrix, compute_contact_time, compute_passes_fspl, compute_passes_throughput, \
+    compute_passes_energy_simplified
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
 
@@ -15,7 +16,7 @@ from notebooks.optimization_problems.design_vector import design_vector_indices,
 class LinkBudgetProblem(Problem):
 
     def __init__(self, instances_df, system_parameters, single_power=True, *args, **kwargs):
-        #self.instances_df = instances_df
+        # self.instances_df = instances_df
         self.sys_param = system_parameters
         self.N_passes = int(np.max(instances_df.index.get_level_values('p').unique().values))
         self.single_power = single_power
@@ -58,27 +59,41 @@ class LinkBudgetProblem(Problem):
 
         # Compute throughput of selected passes
         sel_pass = design_vector['pass'] > 0
-        tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
-        fspl_dB_list = List(
-            compress(self.fspl_dB_list, sel_pass))  # List of free-space path losses of the selected passes
-        Ptx_dBm_list = List(compress(design_vector['power'], sel_pass))
-        Gtx_dBi_list = List(compress(design_vector['antenna'].repeat(self.N_passes), sel_pass))
-        B_Hz_list = List(compress(map(self.sys_param.B_Hz_list.__getitem__, design_vector['bandwidth']), sel_pass))
-        alpha_list = List(compress(map(self.sys_param.alpha_list.__getitem__, design_vector['rolloff']), sel_pass))
-        EsN0_req_dB_list = List(compress(map(self.sys_param.EsN0_req_dB_list.__getitem__, design_vector['modcod']), sel_pass))
-        eta_bitsym_list = List(compress(map(self.sys_param.eta_bitsym_list.__getitem__, design_vector['modcod']), sel_pass))
+        N_sel_pass = np.sum(sel_pass)
 
-        # Option to simplify to one power selection for all passes
-        if self.single_power:
-            Ptx_dBm_list = [design_vector['power'][0]] * len(Ptx_dBm_list)
+        # Defaults
+        f_throughput = 0
+        f_energy = 0
 
-        _, f_throughput = compute_passes_throughput(tof_s_list, fspl_dB_list,
-                                                 Ptx_dBm_list, Gtx_dBi_list, self.sys_param.GT_dBK, B_Hz_list,
-                                                 alpha_list, EsN0_req_dB_list, eta_bitsym_list, self.sys_param.margin_dB)
-        f_energy = compute_passes_energy_simplified(tof_s_list, Ptx_dBm_list)
+        # Compute throughput of selected passes
+        sel_pass = design_vector['pass'] > 0
+        if np.sum(sel_pass) > 0:
+
+            tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
+            fspl_dB_list = List(compress(self.fspl_dB_list, sel_pass))
+            Ptx_dBm_array = design_vector['power'][sel_pass]
+            Gtx_dBi = design_vector['antenna'][0]
+            B_Hz = self.sys_param.B_Hz_list[design_vector['bandwidth'][0]]
+            alpha = self.sys_param.alpha_list[design_vector['rolloff'][0]]
+            EsN0_req_dB_array = self.sys_param.EsN0_req_dB_list[0]
+            eta_bitsym_array = self.sys_param.eta_bitsym_list[0]
+
+            if self.single_power:
+                Ptx_dBm_array[:] = design_vector['power'][0]
+
+            linktime_s_array, f_throughput = compute_passes_throughput(tof_s_list, fspl_dB_list,
+                                                                       Ptx_dBm_array, Gtx_dBi,
+                                                                       self.sys_param.GT_dBK, B_Hz,
+                                                                       alpha,
+                                                                       EsN0_req_dB_array,
+                                                                       eta_bitsym_array,
+                                                                       self.sys_param.margin_dB)
+
+            # Ptx_dBm_array = np.array([Ptx_dBm] * np.sum(sel_pass))
+            f_energy = compute_passes_energy_simplified(tof_s_list, Ptx_dBm_array)
 
         # Compute minimum throughput constraint
         g_minimum = (f_throughput == 0) * 1.0
 
-        out["F"] = [-1 * f_throughput, f_energy]
-        out["G"] = np.concatenate([g_overlap, np.array([g_minimum])])
+        out["F"] = (-1 * f_throughput, f_energy)
+        out["G"] = np.concatenate((g_overlap, np.array([g_minimum])))

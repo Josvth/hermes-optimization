@@ -116,20 +116,20 @@ def compute_throughput_max_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, a
 
     return link_time, throughput_bits, modcod_sel
 
-@njit(parallel=True)
-def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm, Gtx_dBi_list, GT_dBK, B_Hz,
-                              alpha, EsN0_req_dB_array, eta_bitsym_array, margin_dB):
+#@njit(parallel=True)
+def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi, GT_dBK, B_Hz,
+                              alpha, EsN0_req_dB, eta_bitsym, margin_dB):
     """
 
     :param tof_s_list: List of with a numpy array for each pass with the time-of-flight
     :param fspl_dB_list: List of with a numpy array for each pass with the free-space-path loss
-    :param Ptx_dBm: Transmit power for all passes
-    :param Gtx_dBi_list: Narray or list of Narray with antenna gains
+    :param Ptx_dBm_list: List with transmit powers for each pass
+    :param Gtx_dBi: Narray or list of Narray with antenna gains
     :param GT_dBK: G/T for all passes
     :param B_Hz: Bandwidth for all passes
     :param alpha: Roll-off factor for all passes
-    :param EsN0_req_dB_array: Array of required Eb/N0 for each pass
-    :param eta_bitsym_array: Array of spectral efficiency for each pass
+    :param EsN0_req_dB: Array of required Eb/N0 for each pass
+    :param eta_bitsym: Array of spectral efficiency for each pass
     :param margin_dB: Required link-margin
     :return:
     """
@@ -138,10 +138,10 @@ def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm, Gtx_dBi_list, G
 
     for i in prange(len(throughput_bits_array)):
         linktime_s_array[i], throughput_bits_array[i] = compute_throughput(tof_s_list[i], fspl_dB_list[i],
-                                                                           Ptx_dBm, Gtx_dBi_list[i], GT_dBK,
+                                                                           Ptx_dBm_list[i], Gtx_dBi, GT_dBK,
                                                                            B_Hz, alpha,
-                                                                           EsN0_req_dB_array[i],
-                                                                           eta_bitsym_array[i], margin_dB)
+                                                                           EsN0_req_dB,
+                                                                           eta_bitsym, margin_dB)
 
     return linktime_s_array, np.sum(throughput_bits_array)
 
