@@ -34,16 +34,16 @@ def my_eval(param):
     Ptx_dBm_list = List(compress(design_vector['power'], sel_pass))
     Gtx_dBi_array = np.array(list(compress(design_vector['antenna'].repeat(N_passes), sel_pass)))
     B_Hz_array = np.array(
-        list(compress(map(sys_param.B_Hz_list.__getitem__, design_vector['bandwidth']), sel_pass)))
+        list(compress(map(sys_param.B_Hz_array.__getitem__, design_vector['bandwidth']), sel_pass)))
     alpha_array = np.array(list(
-        compress(map(sys_param.alpha_list.__getitem__, design_vector['rolloff'].repeat(self.N_passes)),
+        compress(map(sys_param.alpha_array.__getitem__, design_vector['rolloff'].repeat(self.N_passes)),
                  sel_pass)))
     EsN0_req_dB_array = np.array(
-        list(compress(map(sys_param.EsN0_req_dB_list.__getitem__, design_vector['modcod']), sel_pass)))
+        list(compress(map(sys_param.EsN0_req_dB_array.__getitem__, design_vector['modcod']), sel_pass)))
     eta_bitsym_array = np.array(
-        list(compress(map(sys_param.eta_bitsym_list.__getitem__, design_vector['modcod']), sel_pass)))
+        list(compress(map(sys_param.eta_bitsym_array.__getitem__, design_vector['modcod']), sel_pass)))
     eta_maee_array = np.array(
-        list(compress(map(sys_param.eta_maee_list.__getitem__, design_vector['modcod']), sel_pass)))
+        list(compress(map(sys_param.eta_maee_array.__getitem__, design_vector['modcod']), sel_pass)))
 
     theta_rad_list = List(compress(theta_rad_list, sel_pass))
 

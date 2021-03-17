@@ -71,10 +71,10 @@ class LinkBudgetVisibilityProblem(Problem):
             compress(self.fspl_dB_list, sel_pass))  # List of free-space path losses of the selected passes
         Ptx_dBm_list = List(compress(design_vector['power'], sel_pass))
         Gtx_dBi_list = List(compress(design_vector['antenna'].repeat(self.N_passes), sel_pass))
-        B_Hz_list = List(compress(map(self.sys_param.B_Hz_list.__getitem__, design_vector['bandwidth']), sel_pass))
-        alpha_list = List(compress(map(self.sys_param.alpha_list.__getitem__, design_vector['rolloff']), sel_pass))
-        EsN0_req_dB_list = List(compress(map(self.sys_param.EsN0_req_dB_list.__getitem__, design_vector['modcod']), sel_pass))
-        eta_bitsym_list = List(compress(map(self.sys_param.eta_bitsym_list.__getitem__, design_vector['modcod']), sel_pass))
+        B_Hz_list = List(compress(map(self.sys_param.B_Hz_array.__getitem__, design_vector['bandwidth']), sel_pass))
+        alpha_list = List(compress(map(self.sys_param.alpha_array.__getitem__, design_vector['rolloff']), sel_pass))
+        EsN0_req_dB_list = List(compress(map(self.sys_param.EsN0_req_dB_array.__getitem__, design_vector['modcod']), sel_pass))
+        eta_bitsym_list = List(compress(map(self.sys_param.eta_bitsym_array.__getitem__, design_vector['modcod']), sel_pass))
 
         # Option to simplify to one power selection for all passes
         if self.single_power:

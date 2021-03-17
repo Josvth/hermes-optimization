@@ -1,3 +1,5 @@
+import numpy as np
+
 def design_vector_indices(N):
     def _add_vars(indices, total_count, var_name, var_count):
         indices[var_name] = list(range(total_count, total_count + var_count))
@@ -11,8 +13,8 @@ def design_vector_indices(N):
     indices, total_count = _add_vars(indices, total_count, 'power', N)
     indices, total_count = _add_vars(indices, total_count, 'antenna', 1)
     indices, total_count = _add_vars(indices, total_count, 'bandwidth', 1)
-    indices, total_count = _add_vars(indices, total_count, 'rolloff', 1)
-    indices, total_count = _add_vars(indices, total_count, 'modcod', 1)
+    #indices, total_count = _add_vars(indices, total_count, 'rolloff', 1)
+    #indices, total_count = _add_vars(indices, total_count, 'modcod', 1)
 
     return total_count, indices
 
@@ -27,16 +29,16 @@ def design_vector_bounds(var_count, indices, system_parameters):
     mapping_xl['power'] = min(system_parameters.Ptx_dBm_bounds)
     mapping_xl['antenna'] = min(system_parameters.Gtx_dBi_bounds)
     mapping_xl['bandwidth'] = 0
-    mapping_xl['rolloff'] = 0
-    mapping_xl['modcod'] = 0
+    #mapping_xl['rolloff'] = 0
+    #mapping_xl['modcod'] = 0
 
     mapping_xu = dict()
     mapping_xu['pass'] = 1
     mapping_xu['power'] = max(system_parameters.Ptx_dBm_bounds)
     mapping_xu['antenna'] = max(system_parameters.Gtx_dBi_bounds)
-    mapping_xu['bandwidth'] = 0 #len(system_parameters.B_Hz_list) - 1
-    mapping_xu['rolloff'] = 0 #len(system_parameters.alpha_list) - 1
-    mapping_xu['modcod'] = len(system_parameters.EsN0_req_dB_list) - 1
+    mapping_xu['bandwidth'] = len(system_parameters.B_Hz_array) - 1
+    #mapping_xu['rolloff'] = 0 #len(system_parameters.alpha_list) - 1
+    #mapping_xu['modcod'] = len(system_parameters.EsN0_req_dB_array) - 1
 
     for k, v in indices.items():
         for i in v:
@@ -56,8 +58,8 @@ def design_vector_default_scm(var_count, indices, real_power = False):
     mapping_mask['power'] = "real"
     mapping_mask['antenna'] = "real"
     mapping_mask['bandwidth'] = "int"
-    mapping_mask['rolloff'] = "int"
-    mapping_mask['modcod'] = "int"
+    #mapping_mask['rolloff'] = "int"
+    #mapping_mask['modcod'] = "int"
 
     mask = [None] * var_count
     for k, v in indices.items():
@@ -87,13 +89,13 @@ def design_vector_default_scm(var_count, indices, real_power = False):
 class SystemParameters:
     # Spectral
     fc_Hz = 20e9  # Fixed carrier frequency in [Hz]
-    B_Hz_list = [20e6]  # Bandwidth in [Hz]
+    B_Hz_array = np.array([20e6]) # Bandwidth in [Hz]
 
     # Waveform
-    alpha_list = [0.35]  # Roll-off factor for all passes
-    EsN0_req_dB_list = [10.69]  # List of required EsN0 for the selectable modulation per pass in [dB]
-    eta_bitsym_list = [2.6460120]  # Spectral efficiency in for the selectable modulation per pass in [bits/symbol]
-    eta_maee_list = [1.0]
+    alpha_array = np.array([0.35]) # Roll-off factor for all passes
+    EsN0_req_dB_array = np.array([10.69]) # List of required EsN0 for the selectable modulation per pass in [dB]
+    eta_bitsym_array = np.array([2.6460120]) # Spectral efficiency in for the selectable modulation per pass in [bits/symbol]
+    eta_maee_array = np.array([1.0])
 
     # Transmitter
     Ptx_dBm_bounds = (10, 40) # Bounds of selectable power per pass in [dBm]
