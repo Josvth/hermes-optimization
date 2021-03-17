@@ -44,11 +44,19 @@ def compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz):
 
 ## Throughput functions
 @njit
-def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym, margin_dB):
-    SNR_dB = compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
-    EsN0_dB = SNR_dB - 10 * np.log10(1 / (1 + alpha))  # Es/N0 at the receiver in dB
+def compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha, eta_bitsym):
+    """
+    Computes link time and throughput where margin is positive
 
-    positive_margin = EsN0_dB >= EsN0_req_dB + margin_dB  # True values where there is a positive link margin
+    :param ndarray tof_s: array with time-of-flight in seconds
+    :param ndarray margin_dB: array with margin at time-of-flight in dB
+    :param float B_Hz: channel bandwidth in Hz
+    :param float alpha: roll-off factor
+    :param float eta_bitsym: spectral efficiency in bits/Hz
+    :return: link_time, throughput_bits
+    """
+
+    positive_margin = margin_dB >= 0.0
 
     dt = np.diff(tof_s)  # Deltas between each time step in s
     link_time = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
@@ -60,61 +68,30 @@ def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, Es
 
     return link_time, throughput_bits
 
-
 @njit
-def compute_throughput_min_power(tof_s, fspl_dB, Ptx_dBm_max, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym,
-                                 margin_dB):
-    SNR_dB = compute_snr(fspl_dB, 0.0, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
+def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym, margin_dB):
+    SNR_dB = compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
     EsN0_dB = SNR_dB - 10 * np.log10(1 / (1 + alpha))  # Es/N0 at the receiver in dB
 
-    margin_no_Ptx = EsN0_dB - (EsN0_req_dB + margin_dB)  # Margin before adding transmitter power
-
-    req_Ptx_dBm = -1 * np.minimum(margin_no_Ptx, 0)  # Required Ptx to close the link
-
-    Ptx_dBm = np.minimum(np.max(req_Ptx_dBm), Ptx_dBm_max)  # The used transmission power
-
-    margin = margin_no_Ptx + Ptx_dBm  # Margins after adding transmitter power
-
-    positive_margin = margin >= 0  # True values where there is a positive link margin
-
-    dt = np.diff(tof_s)  # Deltas between each time step in s
-    link_time = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
-
-    Rs_syms = B_Hz / (1 + alpha)  # Symbol rate in symbols per second
-    Rb_bits = Rs_syms * eta_bitsym  # Data rate in bits per second
-
-    throughput_bits = link_time * Rb_bits  # Throughput in bits per second
-
-    return link_time, throughput_bits, Ptx_dBm
-
+    return compute_throughput_from_margin(tof_s, EsN0_dB - (EsN0_req_dB + margin_dB), B_Hz, alpha, eta_bitsym)
 
 @njit
-def compute_throughput_max_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym,
-                               min_margin_dB):
+def compute_throughput_max_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha,
+                               EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
     SNR_dB = compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
     EsN0_dB = SNR_dB - 10 * np.log10(1 / (1 + alpha))  # Es/N0 at the receiver in dB
 
     # Selection of modcod with smallest positive margin
-    margins_dB = np.min(EsN0_dB) - (EsN0_req_dB + min_margin_dB)  # Array with minimum margins for each modcod
+    margins_dB = np.min(EsN0_dB) - (EsN0_req_dB_array + min_margin_dB)  # Array with minimum margins for each modcod
 
     margins_dB = np.maximum(margins_dB, 0)  # Make sure the margin is positive
 
     modcod_sel = np.argmin(margins_dB)  # Select modcod with lowest margin
 
     # Compute throughput with selected modcod
-    margin_dB = EsN0_dB - (EsN0_req_dB[modcod_sel] + min_margin_dB)
+    margin_dB = EsN0_dB - (EsN0_req_dB_array[modcod_sel] + min_margin_dB)
 
-    positive_margin = margin_dB >= 0  # True values where there is a positive link margin
-
-    dt = np.diff(tof_s)  # Deltas between each time step in s
-    link_time = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
-
-    Rs_syms = B_Hz / (1 + alpha)  # Symbol rate in symbols per second
-    Rb_bits = Rs_syms * eta_bitsym[modcod_sel]  # Data rate in bits per second
-
-    throughput_bits = link_time * Rb_bits  # Throughput in bits per second
-
-    return link_time, throughput_bits, modcod_sel
+    return compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha, eta_bitsym_array[modcod_sel]), modcod_sel
 
 
 # @njit(parallel=True)
