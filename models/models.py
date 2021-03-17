@@ -150,7 +150,7 @@ def compute_passes_throughput_multi_carrier(tof_s_list, fspl_dB_list, Ptx_dBm_ar
         carriers = 2
     if B_Hz <= 300e6:
         carriers = 3
-        
+
     EsN0_req_dB_array = EsN0_req_dB_2darray[carriers, :]
     eta_bitsym_array = eta_bitsym_2darray[carriers, :]
 

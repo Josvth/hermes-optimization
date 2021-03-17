@@ -7,8 +7,7 @@ from pymoo.model.problem import Problem
 from hermes.postprocessing import generate_grouped_passed_df, generate_pass_range_list, \
     generate_pass_tof_list, generate_pass_r_ab_list
 from models.models import compute_overlap_matrix, compute_passes_fspl, compute_passes_elevation_angles, \
-    compute_passes_energy_maee, compute_passes_throughput, compute_passes_throughput_min_power, \
-    compute_passes_throughput_max_vcm, compute_passes_throughput_opt_vcm
+    compute_passes_energy_maee, compute_passes_throughput_opt_vcm
 from notebooks.optimization_problems.constraints import Requirements
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
