@@ -59,14 +59,14 @@ def compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha, eta_bitsym):
     positive_margin = margin_dB >= 0.0
 
     dt = np.diff(tof_s)  # Deltas between each time step in s
-    link_time = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
+    link_time_s = np.sum(dt * positive_margin[1:])  # Total time the link is established in s
 
     Rs_syms = B_Hz / (1 + alpha)  # Symbol rate in symbols per second
     Rb_bits = Rs_syms * eta_bitsym  # Data rate in bits per second
 
-    throughput_bits = link_time * Rb_bits  # Throughput in bits per second
+    throughput_bits = link_time_s * Rb_bits  # Throughput in bits per second
 
-    return link_time, throughput_bits
+    return link_time_s, throughput_bits
 
 @njit
 def compute_throughput(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha, EsN0_req_dB, eta_bitsym, margin_dB):
@@ -91,7 +91,9 @@ def compute_throughput_max_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, a
     # Compute throughput with selected modcod
     margin_dB = EsN0_dB - (EsN0_req_dB_array[modcod_sel] + min_margin_dB)
 
-    return compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha, eta_bitsym_array[modcod_sel]), modcod_sel
+    link_time_s, throughput_bits = compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha, eta_bitsym_array[modcod_sel])
+
+    return link_time_s, throughput_bits, modcod_sel
 
 
 # @njit(parallel=True)
