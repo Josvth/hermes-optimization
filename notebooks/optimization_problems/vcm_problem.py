@@ -79,9 +79,6 @@ class VCMProblem(Problem):
             Gtx_dBi = design_vector['antenna'][0]
             B_Hz = self.sys_param.B_Hz_list[design_vector['bandwidth'][0]]
             alpha = self.sys_param.alpha_list[design_vector['rolloff'][0]]
-            max_vcm = design_vector['modcod'][0]
-            max_vcm = 27
-            #print(max_vcm)
             EsN0_req_dB_array = self.sys_param.EsN0_req_dB_list
             eta_bitsym_array = self.sys_param.eta_bitsym_list
             eta_maee_array = self.sys_param.eta_maee_list
@@ -91,7 +88,7 @@ class VCMProblem(Problem):
             linktime_s_array, f_throughput, vcm_array = compute_passes_throughput_opt_vcm(tof_s_list, fspl_dB_list,
                                                 Ptx_dBm_array, Gtx_dBi,
                                                 self.sys_param.GT_dBK, B_Hz,
-                                                alpha, max_vcm, EsN0_req_dB_array,
+                                                alpha, EsN0_req_dB_array,
                                                 eta_bitsym_array, self.sys_param.margin_dB)
 
             #Ptx_dBm_array = np.array([Ptx_dBm] * np.sum(sel_pass))

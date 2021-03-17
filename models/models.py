@@ -126,7 +126,7 @@ def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi, G
 
 # @njit(parallel=True)
 def compute_passes_throughput_opt_vcm(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
-                                      alpha, max_vcm, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
+                                      alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
     linktime_s_array = np.zeros(len(tof_s_list))
     throughput_bits_array = np.zeros(len(tof_s_list))
     vcm_array = np.zeros(len(tof_s_list), dtype=np.int64)
@@ -136,11 +136,26 @@ def compute_passes_throughput_opt_vcm(tof_s_list, fspl_dB_list, Ptx_dBm_array, G
             tof_s_list[i], fspl_dB_list[i],
             Ptx_dBm_array[i], Gtx_dBi, GT_dBK,
             B_Hz, alpha,
-            EsN0_req_dB_array[:max_vcm + 1],
-            eta_bitsym_array[:max_vcm + 1], min_margin_dB)
+            EsN0_req_dB_array,
+            eta_bitsym_array, min_margin_dB)
 
     return linktime_s_array, np.sum(throughput_bits_array), vcm_array
 
+def compute_passes_throughput_multi_carrier(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
+                                      alpha, EsN0_req_dB_2darray, eta_bitsym_2darray, min_margin_dB):
+    # Determine number of sub-carriers
+    if B_Hz <= 100e6:
+        carriers = 1
+    if B_Hz <= 200e6:
+        carriers = 2
+    if B_Hz <= 300e6:
+        carriers = 3
+        
+    EsN0_req_dB_array = EsN0_req_dB_2darray[carriers, :]
+    eta_bitsym_array = eta_bitsym_2darray[carriers, :]
+
+    return compute_passes_throughput_opt_vcm(tof_s_list,fspl_dB_list,Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
+                                             alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB)
 
 ## Visbility functions
 @njit
