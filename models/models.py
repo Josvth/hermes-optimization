@@ -116,7 +116,8 @@ def compute_throughput_max_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, a
 
     return link_time, throughput_bits, modcod_sel
 
-#@njit(parallel=True)
+
+# @njit(parallel=True)
 def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi, GT_dBK, B_Hz,
                               alpha, EsN0_req_dB, eta_bitsym, margin_dB):
     """
@@ -146,42 +147,7 @@ def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi, G
     return linktime_s_array, np.sum(throughput_bits_array)
 
 
-@njit(parallel=True)
-def compute_passes_throughput_min_power(tof_s_list, fspl_dB_list, Ptx_dBm_max, Gtx_dBi, GT_dBK, B_Hz,
-                                        alpha, EsN0_req_dB_array, eta_bitsym_array, margin_dB):
-    linktime_s_array = np.zeros(len(tof_s_list))
-    throughput_bits_array = np.zeros(len(tof_s_list))
-    Ptx_dBm_array = np.zeros(len(tof_s_list))
-
-    for i in prange(len(throughput_bits_array)):
-        linktime_s_array[i], throughput_bits_array[i], Ptx_dBm_array[i] = compute_throughput_min_power(
-            tof_s_list[i], fspl_dB_list[i],
-            Ptx_dBm_max, Gtx_dBi, GT_dBK,
-            B_Hz, alpha,
-            EsN0_req_dB_array[i],
-            eta_bitsym_array[i], margin_dB)
-
-    return linktime_s_array, np.sum(throughput_bits_array), Ptx_dBm_array
-
-
-@njit(parallel=True)
-def compute_passes_throughput_max_vcm(tof_s_list, fspl_dB_list, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz,
-                                      alpha, max_vcm, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
-    linktime_s_array = np.zeros(len(tof_s_list))
-    throughput_bits_array = np.zeros(len(tof_s_list))
-    vcm_array = np.zeros(len(tof_s_list), dtype=np.int64)
-
-    for i in prange(len(throughput_bits_array)):
-        linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_max_vcm(
-            tof_s_list[i], fspl_dB_list[i],
-            Ptx_dBm, Gtx_dBi, GT_dBK,
-            B_Hz, alpha,
-            EsN0_req_dB_array[:max_vcm + 1],
-            eta_bitsym_array[:max_vcm + 1], min_margin_dB)
-
-    return linktime_s_array, np.sum(throughput_bits_array), vcm_array
-
-#@njit(parallel=True)
+# @njit(parallel=True)
 def compute_passes_throughput_opt_vcm(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
                                       alpha, max_vcm, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
     linktime_s_array = np.zeros(len(tof_s_list))
@@ -197,6 +163,7 @@ def compute_passes_throughput_opt_vcm(tof_s_list, fspl_dB_list, Ptx_dBm_array, G
             eta_bitsym_array[:max_vcm + 1], min_margin_dB)
 
     return linktime_s_array, np.sum(throughput_bits_array), vcm_array
+
 
 ## Visbility functions
 @njit
@@ -267,7 +234,7 @@ def compute_passes_energy_simplified_visibility(linktime_s_list, Ptx_dBm_list):
     return np.sum(energy_J_list)
 
 
-#@njit
+# @njit
 def compute_passes_energy_maee(linktime_s_list, Ptx_dBm_array, eta_maee_list):
     energy_J_list = np.zeros(len(linktime_s_list))
 
