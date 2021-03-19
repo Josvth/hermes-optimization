@@ -56,6 +56,7 @@ class BandwidthProblem(Problem):
                          **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
+
         # Explode design vector
         design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
 
@@ -71,29 +72,29 @@ class BandwidthProblem(Problem):
 
         # Compute throughput of selected passes
         sel_pass = design_vector['pass'] > 0
-        if np.sum(sel_pass) > 0:
+        num_pass = int(np.sum(sel_pass))
+        if num_pass > 0:
 
             tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
             fspl_dB_list = List(compress(self.fspl_dB_list, sel_pass))
+
             Ptx_dBm_array = design_vector['power'][sel_pass]
             Gtx_dBi = design_vector['antenna'][0]
             B_Hz = self.sys_param.B_Hz_array[design_vector['bandwidth'][0]]
             alpha = self.sys_param.alpha_array[0]
-            EsN0_req_dB_2darray = self.sys_param.EsN0_req_dB_array
-            eta_bitsym_2darray = self.sys_param.eta_bitsym_array
-            eta_maee_2darray = self.sys_param.eta_maee_array
+            EsN0_req_dB_array = self.sys_param.EsN0_req_dB_array
+            carriers = multi_carrier.get_sub_carriers(B_Hz)
+            eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers-1])
+            eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers-1])
 
-            theta_rad_list = List(compress(self.theta_rad_list, sel_pass))
-
-            linktime_s_array, f_throughput, vcm_array = multi_carrier.compute_passes_throughput(tof_s_list, fspl_dB_list,
+            linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list, fspl_dB_list,
                                                 Ptx_dBm_array, Gtx_dBi,
                                                 self.sys_param.GT_dBK, B_Hz,
-                                                alpha, EsN0_req_dB_2darray,
-                                                eta_bitsym_2darray, self.sys_param.margin_dB)
+                                                alpha, EsN0_req_dB_array,
+                                                eta_bitsym_array, self.sys_param.margin_dB)
 
-            carriers = multi_carrier.get_sub_carriers(B_Hz)
+            f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array)
 
-            f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_2darray[vcm_array, carriers - 1])
 
         # Compute minimum throughput constraint
         g_minimum = self.reqs.min_throughput - f_throughput

@@ -7,8 +7,8 @@ from pymoo.model.problem import Problem
 from hermes.postprocessing import generate_passes_df_reduced, generate_grouped_passed_df, generate_pass_range_list, \
     generate_pass_tof_list
 
-from models.models import compute_overlap_matrix, compute_contact_time, compute_passes_fspl, compute_passes_throughput, \
-    compute_passes_energy_simplified
+from models import contact, link_budget, energy
+
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
 
@@ -28,12 +28,12 @@ class LinkBudgetProblem(Problem):
         self.e_tofs = grouped_passes_df.last().tof.values
 
         # Compute overlap matrix
-        self.O_matrix = compute_overlap_matrix(self.b_tofs, self.e_tofs)
+        self.O_matrix = contact.compute_overlap_matrix(self.b_tofs, self.e_tofs)
 
         # Compute free space path loss
         self.tof_s_list = generate_pass_tof_list(grouped_passes_df)
         range_m_list = generate_pass_range_list(grouped_passes_df)
-        self.fspl_dB_list = compute_passes_fspl(range_m_list, self.sys_param.fc_Hz)
+        self.fspl_dB_list = link_budget.compute_passes_fspl(range_m_list, self.sys_param.fc_Hz)
 
         # Get design vector indices and bounds
         self.x_length, self.x_indices = design_vector_indices(self.N_passes)
@@ -81,7 +81,7 @@ class LinkBudgetProblem(Problem):
             if self.single_power:
                 Ptx_dBm_array[:] = design_vector['power'][0]
 
-            linktime_s_array, f_throughput = compute_passes_throughput(tof_s_list, fspl_dB_list,
+            linktime_s_array, f_throughput = link_budget.compute_passes_throughput(tof_s_list, fspl_dB_list,
                                                                        Ptx_dBm_array, Gtx_dBi,
                                                                        self.sys_param.GT_dBK, B_Hz,
                                                                        alpha,
@@ -91,7 +91,7 @@ class LinkBudgetProblem(Problem):
                                                                        self.sys_param.margin_dB)
 
             # Ptx_dBm_array = np.array([Ptx_dBm] * np.sum(sel_pass))
-            f_energy = compute_passes_energy_simplified(tof_s_list, Ptx_dBm_array)
+            f_energy = energy.compute_passes_energy_simplified(tof_s_list, Ptx_dBm_array)
 
         # Compute minimum throughput constraint
         g_minimum = (f_throughput == 0) * 1.0
