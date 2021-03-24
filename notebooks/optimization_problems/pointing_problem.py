@@ -72,7 +72,7 @@ class PointingProblem(Problem):
         g_overlap = overlap.flatten()  # Non-overlapping constraint
 
         # Compute throughput of selected passes
-        sel_pass = design_vector['pass'] > 0
+        sel_pass = design_vector['pass'].astype('bool') > 0
         num_pass = int(np.sum(sel_pass))
         if num_pass > 0:
             tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
@@ -80,7 +80,7 @@ class PointingProblem(Problem):
             theta_rad_list = List(compress(self.theta_rad_list, sel_pass))
             phi_rad_list = List(compress(self.phi_rad_list, sel_pass))
 
-            Ptx_dBm_array = design_vector['power'][sel_pass]
+            Ptx_dBm_array = design_vector['power'][sel_pass].astype('float64')
             Gtx_dBi = design_vector['antenna'][0]
             B_Hz = self.sys_param.B_Hz_array[design_vector['bandwidth'][0]]
             alpha = self.sys_param.alpha_array[0]
@@ -95,6 +95,7 @@ class PointingProblem(Problem):
                                                                                       alpha, EsN0_req_dB_array,
                                                                                       eta_bitsym_array,
                                                                                       self.sys_param.margin_dB)
+            eta_maee_array = eta_maee_array[vcm_array]
 
             f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array)
 
