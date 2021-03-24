@@ -78,7 +78,7 @@ class BandwidthProblem(Problem):
             tof_s_list = List(compress(self.tof_s_list, sel_pass))  # List of tofs of the selected passes
             fspl_dB_list = List(compress(self.fspl_dB_list, sel_pass))
 
-            Ptx_dBm_array = design_vector['power'][sel_pass]
+            Ptx_dBm_array = design_vector['power'][sel_pass].astype('float64')
             Gtx_dBi = design_vector['antenna'][0]
             B_Hz = self.sys_param.B_Hz_array[design_vector['bandwidth'][0]]
             alpha = self.sys_param.alpha_array[0]
@@ -92,6 +92,8 @@ class BandwidthProblem(Problem):
                                                 self.sys_param.GT_dBK, B_Hz,
                                                 alpha, EsN0_req_dB_array,
                                                 eta_bitsym_array, self.sys_param.margin_dB)
+
+            eta_maee_array = eta_maee_array[vcm_array]
 
             f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array)
 
