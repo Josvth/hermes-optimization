@@ -15,7 +15,7 @@ def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha
 
     margins_dB = np.maximum(margins_dB, 0)  # Make sure the margin is positive
 
-    modcod_sel = np.argmin(margins_dB)  # Select modcod with lowest margin
+    modcod_sel = int(np.argmin(margins_dB))  # Select modcod with lowest margin
 
     # Compute throughput with selected modcod
     margin_dB = EsN0_dB - (EsN0_req_dB_array[modcod_sel] + min_margin_dB)
@@ -26,12 +26,12 @@ def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha
     return link_time_s, throughput_bits, modcod_sel
 
 
-#@njit(parallel=True)
+@njit(parallel=True)
 def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
                               alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
-    linktime_s_array = np.empty(len(tof_s_list))
-    throughput_bits_array = np.empty(len(tof_s_list))
-    vcm_array = np.empty(len(tof_s_list))
+    linktime_s_array = np.empty(len(tof_s_list), np.float64)
+    throughput_bits_array = np.empty(len(tof_s_list), np.float64)
+    vcm_array = np.empty(len(tof_s_list), np.int32)
 
     for i in prange(len(throughput_bits_array)):
         linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_vcm(
