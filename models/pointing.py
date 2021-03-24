@@ -15,7 +15,7 @@ def compute_pointing_fg(tof_s_array, theta_rad_array, phi_rad_array, Gtx_dBi, ra
     theta_pointing_rad_array = compute_pointing(theta_rad_array, Gtx_dBi)
 
     dt = np.diff(tof_s_array)
-    f_pointing = np.sum(theta_pointing_rad_array[1:] * dt)
+    f_pointing = np.sum((theta_pointing_rad_array[1:] > 0) * dt)
 
     dtheta = np.diff(theta_rad_array)
     dphi = np.diff(phi_rad_array)
