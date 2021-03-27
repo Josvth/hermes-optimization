@@ -1,5 +1,6 @@
 import numpy as np
 from numba import prange, njit
+from numba.typed import List
 
 from models import link_budget
 
@@ -23,22 +24,24 @@ def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha
     link_time_s, throughput_bits = link_budget.compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha,
                                                                               eta_bitsym_array[modcod_sel])
 
-    return link_time_s, throughput_bits, modcod_sel
+    return margin_dB, link_time_s, throughput_bits, modcod_sel
 
 
 @njit(parallel=True)
 def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
                               alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
+
+    margin_dB_list = List(tof_s_list)
     linktime_s_array = np.empty(len(tof_s_list), np.float64)
     throughput_bits_array = np.empty(len(tof_s_list), np.float64)
     vcm_array = np.empty(len(tof_s_list), np.int32)
 
     for i in prange(len(throughput_bits_array)):
-        linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_vcm(
+        margin_dB_list[i], linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_vcm(
             tof_s_list[i], fspl_dB_list[i],
             Ptx_dBm_array[i], Gtx_dBi, GT_dBK,
             B_Hz, alpha,
             EsN0_req_dB_array,
             eta_bitsym_array, min_margin_dB)
 
-    return linktime_s_array, np.sum(throughput_bits_array), vcm_array
+    return margin_dB_list, linktime_s_array, np.sum(throughput_bits_array), vcm_array

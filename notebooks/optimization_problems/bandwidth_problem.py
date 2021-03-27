@@ -87,7 +87,7 @@ class BandwidthProblem(Problem):
             eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers-1])
             eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers-1])
 
-            linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list, fspl_dB_list,
+            _, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list, fspl_dB_list,
                                                 Ptx_dBm_array, Gtx_dBi,
                                                 self.sys_param.GT_dBK, B_Hz,
                                                 alpha, EsN0_req_dB_array,

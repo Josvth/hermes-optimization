@@ -10,10 +10,11 @@ class Requirements(object):
     max_energy = -1
 
     # Pointing rate
-    max_rate_rads = 1e18
+    max_rate_rads = -1
 
 
-def apply_constraints(requirements, f_throughput, f_energy=0, f_pointing=0, theta_rate_rads_max=0, phi_rate_rads_max=0):
+def compute_constraints(requirements, f_throughput, f_latency=0, f_energy=0, f_pointing=0, rates_rads_array=None):
+
     # Throughput minimum/maximum
     g_throughput_minimum = 0
     g_throughput_maximum = 0
@@ -22,15 +23,25 @@ def apply_constraints(requirements, f_throughput, f_energy=0, f_pointing=0, thet
     if requirements.max_throughput > 0:
         g_throughput_maximum = f_throughput - requirements.max_throughput
 
+    # Maximum latency
+    g_latency_maximum = 0
+    if requirements.max_latency > 0:
+        g_latency_maximum = f_latency - requirements.max_latency
+
+    # Maximum energy
     g_energy_maximum = 0
     if requirements.max_energy > 0:
-        g_energy_maximum = f_energy - requirements.max_throughput
+        g_energy_maximum = f_energy - requirements.max_energy
+
+    # Maximum pointing
+    g_pointing_maximum = 0
+    if requirements.max_pointing > 0:
+        g_pointing_maximum = f_pointing - requirements.max_pointing
 
     # Rotational rates
-    # g_theta_rate_max = 0
-    # g_phi_rate_max = 0
-    # if requirements.max_rate_rads > 0:
-    #     g_theta_rate_max = theta_rate_rads_max - requirements.max_rate_rads
-    #     g_phi_rate_max = phi_rate_rads_max - requirements.max_rate_rads
+    g_rates_maximum = 0
+    if requirements.max_rate_rads > 0:
+        g_rates_maximum = rates_rads_array - requirements.max_rate_rads
 
-    return np.array([g_throughput_minimum, g_throughput_maximum, g_energy_maximum])
+    gg_constraint = np.concatenate(np.array([g_throughput_minimum,  ]))
+    return g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum, g_rates_maximum

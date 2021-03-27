@@ -1,5 +1,6 @@
 import numpy as np
-from numba import jit, njit
+from numba import jit, njit, prange
+
 
 @njit
 def compute_fspl(range_m, fc_Hz):

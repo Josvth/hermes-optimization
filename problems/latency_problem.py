@@ -7,14 +7,14 @@ from pymoo.model.problem import Problem
 from hermes.postprocessing import generate_grouped_passed_df, generate_pass_range_list, \
     generate_pass_tof_list, generate_pass_r_ab_list
 
-from models import contact, link_budget, vcm, models, energy, multi_carrier, pointing, visibility
+from models import contact, link_budget, vcm, models, energy, multi_carrier, pointing, visibility, latency
 
 from notebooks.optimization_problems.constraints import Requirements, compute_constraints
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
 
 
-class PointingProblem(Problem):
+class LatencyProblem(Problem):
 
     def __init__(self, instances_df, system_parameters, requirements=Requirements(), *args, **kwargs):
         # self.instances_df = instances_df
@@ -28,6 +28,7 @@ class PointingProblem(Problem):
         # Setup variables needed for optimization
         self.b_tofs = grouped_passes_df.first().tof.values
         self.e_tofs = grouped_passes_df.last().tof.values
+        self.t_end_s = grouped_passes_df.last().tof.values[-1]
 
         # Compute overlap matrix
         self.O_matrix = contact.compute_overlap_matrix(self.b_tofs, self.e_tofs)
@@ -54,10 +55,12 @@ class PointingProblem(Problem):
                          **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
+
         # Defaults
         f_throughput = 0  # Maximum throughput objective
         f_energy = 0  # Minimum energy objective
         f_pointing = 0  # Minimum pointing objective
+        f_latency = 0  # Minimize latency objective
 
         rates_rads_array = np.zeros(self.N_passes)
 
@@ -84,27 +87,36 @@ class PointingProblem(Problem):
             alpha = self.sys_param.alpha_array[0]
             EsN0_req_dB_array = self.sys_param.EsN0_req_dB_array
             carriers = multi_carrier.get_sub_carriers(B_Hz)
-            eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers-1])
-            eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers-1])
+            eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers - 1])
+            eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
 
-            linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list, fspl_dB_list,
-                                                                                      Ptx_dBm_array, Gtx_dBi,
-                                                                                      self.sys_param.GT_dBK, B_Hz,
-                                                                                      alpha, EsN0_req_dB_array,
-                                                                                      eta_bitsym_array,
-                                                                                      self.sys_param.margin_dB)
+            # Throughput
+            margin_dB_list, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list,
+                                                                                                      fspl_dB_list,
+                                                                                                      Ptx_dBm_array,
+                                                                                                      Gtx_dBi,
+                                                                                                      self.sys_param.GT_dBK,
+                                                                                                      B_Hz,
+                                                                                                      alpha,
+                                                                                                      EsN0_req_dB_array,
+                                                                                                      eta_bitsym_array,
+                                                                                                      self.sys_param.margin_dB)
+            # Energy
             eta_maee_array = eta_maee_array[vcm_array]
-
             f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array)
 
-            f_pointing, rates_rads_array[sel_pass] = pointing.compute_pointing_fg_passes(tof_s_list, theta_rad_list,
-                                                                                         phi_rad_list, Gtx_dBi,
-                                                                                         self.reqs.max_rate_rads)
+            # Pointing
+            f_pointing, rates_rads_array[sel_pass] = pointing.compute_pointing_passes(
+                tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi)
+
+            # Latency
+            f_latency = latency.compute_latency_passes(self.tof_s_list, margin_dB_list, self.t_end_s)
 
         # Handle constraints
         gg_constraint = g_overlap
-        gg_constraint = compute_constraints(self.reqs, f_throughput, f_energy=f_energy,
-                                            f_pointing=f_pointing, rates_rads_array=rates_rads_array)
+        constraint_tuple = compute_constraints(self.reqs, f_throughput, f_latency, f_energy, f_pointing, rates_rads_array)
+        for g_contraint in gg_constraint:
+            gg_constraint = np.append(g_contraint)
 
-        out["F"] = [-1 * f_throughput, f_energy, f_pointing]
-        out["G"] = np.concatenate([g_overlap, gg_constraint])
+        out["F"] = [f_latency, f_energy, f_pointing]
+        out["G"] = gg_constraint
