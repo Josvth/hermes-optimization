@@ -87,7 +87,7 @@ class PointingProblem(Problem):
             eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers-1])
             eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers-1])
 
-            linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list, fspl_dB_list,
+            _, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list, fspl_dB_list,
                                                                                       Ptx_dBm_array, Gtx_dBi,
                                                                                       self.sys_param.GT_dBK, B_Hz,
                                                                                       alpha, EsN0_req_dB_array,
@@ -97,12 +97,10 @@ class PointingProblem(Problem):
 
             f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array)
 
-            f_pointing, rates_rads_array[sel_pass] = pointing.compute_pointing_fg_passes(tof_s_list, theta_rad_list,
-                                                                                         phi_rad_list, Gtx_dBi,
-                                                                                         self.reqs.max_rate_rads)
+            f_pointing, rates_rads_array[sel_pass] = pointing.compute_pointing_passes(tof_s_list, theta_rad_list,
+                                                                                         phi_rad_list, Gtx_dBi)
 
         # Handle constraints
-        gg_constraint = g_overlap
         gg_constraint = compute_constraints(self.reqs, f_throughput, f_energy=f_energy,
                                             f_pointing=f_pointing, rates_rads_array=rates_rads_array)
 

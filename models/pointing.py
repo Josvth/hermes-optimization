@@ -5,14 +5,14 @@ import numpy as np
 
 
 @njit
-def compute_pointing(theta_rad_array, Gtx_dBi):
+def compute_antenna_pointing(theta_rad_array, Gtx_dBi):
     theta_hpbw_rad = visibility.compute_hpbw(Gtx_dBi)
     return np.maximum(theta_rad_array - 0.5 * theta_hpbw_rad, 0)
 
 
 @njit
-def compute_pointing_f(tof_s_array, theta_rad_array, phi_rad_array, Gtx_dBi):
-    theta_pointing_rad_array = compute_pointing(theta_rad_array, Gtx_dBi)
+def compute_pointing(tof_s_array, theta_rad_array, phi_rad_array, Gtx_dBi):
+    theta_pointing_rad_array = compute_antenna_pointing(theta_rad_array, Gtx_dBi)
 
     dt = np.diff(tof_s_array)
     f_pointing = np.sum((theta_pointing_rad_array[1:] > 0) * dt)
@@ -25,17 +25,16 @@ def compute_pointing_f(tof_s_array, theta_rad_array, phi_rad_array, Gtx_dBi):
     theta_rate_max_rad = np.max(np.abs(dtheta / dt))
     phi_rate_max_rad = np.max(np.abs(dphi / dt))
 
-    return f_pointing, theta_rate_max_rad, phi_rate_max_rad
+    return f_pointing, np.maximum(theta_rate_max_rad, phi_rate_max_rad)
 
 
 @njit(parallel=True)
-def compute_pointing_passes(tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi, rate_max_rads):
+def compute_pointing_passes(tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi):
     f_pointing_array = np.zeros(len(tof_s_list))
-    theta_rate_max_rad_array = np.zeros(len(tof_s_list))
-    phi_rate_max_rad_array = np.zeros(len(tof_s_list))
+    rate_max_rad_array = np.zeros(len(tof_s_list))
 
     for i in prange(len(f_pointing_array)):
-        f_pointing_array[i], theta_rate_max_rad_array[i], phi_rate_max_rad_array[i] = compute_pointing_f(
+        f_pointing_array[i], rate_max_rad_array[i] = compute_pointing(
             tof_s_list[i], theta_rad_list[i], phi_rad_list[i], Gtx_dBi)
 
-    return np.sum(f_pointing_array), theta_rate_max_rad_array, phi_rate_max_rad_array
+    return np.sum(f_pointing_array), rate_max_rad_array

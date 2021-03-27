@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 
 
 class Requirements(object):
@@ -6,14 +7,17 @@ class Requirements(object):
     min_throughput = 5e9
     max_throughput = -1
 
+    # Latency
+    max_latency = -1
+
     # Energy
     max_energy = -1
 
-    # Pointing rate
+    # Pointing
+    max_pointing = -1
     max_rate_rads = -1
 
-
-def compute_constraints(requirements, f_throughput, f_latency=0, f_energy=0, f_pointing=0, rates_rads_array=None):
+def compute_constraints(requirements, f_throughput, f_latency=0, f_energy=0, f_pointing=0, rates_rads_array=0):
 
     # Throughput minimum/maximum
     g_throughput_minimum = 0
@@ -43,5 +47,6 @@ def compute_constraints(requirements, f_throughput, f_latency=0, f_energy=0, f_p
     if requirements.max_rate_rads > 0:
         g_rates_maximum = rates_rads_array - requirements.max_rate_rads
 
-    gg_constraint = np.concatenate(np.array([g_throughput_minimum,  ]))
-    return g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum, g_rates_maximum
+    g_constraints = np.append([g_throughput_minimum, g_throughput_maximum, g_latency_maximum,
+                               g_energy_maximum, g_pointing_maximum], g_rates_maximum)
+    return g_constraints

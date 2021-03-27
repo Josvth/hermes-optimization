@@ -110,13 +110,11 @@ class LatencyProblem(Problem):
                 tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi)
 
             # Latency
-            f_latency = latency.compute_latency_passes(self.tof_s_list, margin_dB_list, self.t_end_s)
+            f_latency = latency.compute_latency_passes(tof_s_list, margin_dB_list, self.t_end_s)
 
         # Handle constraints
-        gg_constraint = g_overlap
-        constraint_tuple = compute_constraints(self.reqs, f_throughput, f_latency, f_energy, f_pointing, rates_rads_array)
-        for g_contraint in gg_constraint:
-            gg_constraint = np.append(g_contraint)
+        gg_constraint = compute_constraints(self.reqs, f_throughput, f_energy=f_energy,
+                                            f_pointing=f_pointing, rates_rads_array=rates_rads_array)
 
         out["F"] = [f_latency, f_energy, f_pointing]
-        out["G"] = gg_constraint
+        out["G"] = np.concatenate([g_overlap, gg_constraint])
