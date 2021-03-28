@@ -14,7 +14,7 @@ from notebooks.optimization_problems.design_vector import design_vector_indices,
     explode_design_vector
 
 
-class LatencyProblem(Problem):
+class FullProblem(Problem):
 
     def __init__(self, instances_df, system_parameters, requirements=Requirements(), *args, **kwargs):
         # self.instances_df = instances_df
@@ -47,8 +47,8 @@ class LatencyProblem(Problem):
         self.xl, self.xu = design_vector_bounds(self.x_length, self.x_indices, self.sys_param)
 
         super().__init__(n_var=self.x_length,
-                         n_obj=3,
-                         n_constr=int((self.N_passes * (self.N_passes + 1)) / 2) + 1 + self.N_passes,
+                         n_obj=4,
+                         n_constr=int((self.N_passes * (self.N_passes + 1)) / 2) + 5 + self.N_passes,
                          xl=self.xl,
                          xu=self.xu,
                          elementwise_evaluation=True,
@@ -116,5 +116,5 @@ class LatencyProblem(Problem):
         gg_constraint = compute_constraints(self.reqs, f_throughput, f_latency=f_latency, f_energy=f_energy,
                                             f_pointing=f_pointing, rates_rads_array=rates_rads_array)
 
-        out["F"] = [f_latency, f_energy, f_pointing]
+        out["F"] = [-1*f_throughput, f_latency, f_energy, f_pointing]
         out["G"] = np.concatenate([g_overlap, gg_constraint])
