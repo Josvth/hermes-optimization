@@ -5,7 +5,7 @@ from numba.typed import List
 from models import link_budget
 
 
-@njit
+@njit(parallel=True)
 def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha,
                            EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
     SNR_dB = link_budget.compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz)  # SNR at the reciever in dB
@@ -28,20 +28,29 @@ def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha
 
 
 @njit(parallel=True)
-def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
+def compute_passes_throughput(pass_inds, tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
                               alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
 
-    margin_dB_list = List(tof_s_list)
-    linktime_s_array = np.empty(len(tof_s_list), np.float64)
-    throughput_bits_array = np.empty(len(tof_s_list), np.float64)
-    vcm_array = np.empty(len(tof_s_list), np.int32)
+    b_s_array = np.empty(len(pass_inds), np.float64)
+    e_s_array = np.empty(len(pass_inds), np.float64)
 
-    for i in prange(len(throughput_bits_array)):
-        margin_dB_list[i], linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_vcm(
-            tof_s_list[i], fspl_dB_list[i],
+    linktime_s_array = np.empty(len(pass_inds), np.float64)
+    throughput_bits_array = np.empty(len(pass_inds), np.float64)
+    vcm_array = np.empty(len(pass_inds), np.int32)
+
+    for i in prange(len(pass_inds)):
+        p = pass_inds[i]
+
+        margin_dB, linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_vcm(
+            tof_s_list[p], fspl_dB_list[p],
             Ptx_dBm_array[i], Gtx_dBi, GT_dBK,
             B_Hz, alpha,
             EsN0_req_dB_array,
             eta_bitsym_array, min_margin_dB)
 
-    return margin_dB_list, linktime_s_array, np.sum(throughput_bits_array), vcm_array
+        # Calculate begin and end times
+        link_tof_s = tof_s_list[p][np.nonzero(margin_dB >= 0)]
+        b_s_array[i] = np.NaN if len(link_tof_s) == 0 else link_tof_s[0]
+        e_s_array[i] = np.NaN if len(link_tof_s) == 0 else link_tof_s[-1]
+
+    return b_s_array[~np.isnan(b_s_array)], e_s_array[~np.isnan(b_s_array)], linktime_s_array, np.sum(throughput_bits_array), vcm_array

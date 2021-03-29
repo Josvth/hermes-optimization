@@ -28,11 +28,7 @@ def compute_passes_energy_simplified_visibility(linktime_s_list, Ptx_dBm_list):
     return np.sum(energy_J_list)
 
 
-@njit(parallel=True)
+@njit
 def compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array):
-    energy_J = 0.0
-
-    for i in prange(linktime_s_array.shape[0]):
-        energy_J += compute_energy(linktime_s_array[i], Ptx_dBm_array[i], eta_maee_array[i])
-
+    energy_J = np.sum(compute_energy(linktime_s_array, Ptx_dBm_array, eta_maee_array))
     return energy_J

@@ -14,7 +14,7 @@ from models.link_budget import compute_snr
 # see models.vcm
 
 ## Visbility model
-@njit
+@njit(parallel=True)
 def compute_hpbw(Gtx_dBi):
     theta_hpbw_rad = np.sqrt(4 * np.pi / (10 ** (0.1 * Gtx_dBi)))  # Inverse Krauss' formula
     return theta_hpbw_rad

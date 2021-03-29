@@ -1,4 +1,7 @@
 import numpy as np
+from pymoo.model.sampling import Sampling
+from pymoo.util.normalization import denormalize
+
 
 def design_vector_indices(N):
     def _add_vars(indices, total_count, var_name, var_count):
@@ -74,13 +77,14 @@ def design_vector_default_scm(var_count, indices, real_power = False):
 
     crossover = MixedVariableCrossover(mask, {
         "bin": get_crossover("bin_hux"),
+        #"bin": get_crossover("bin_k_point", n_points=2),
         "int": get_crossover("int_sbx", prob=1.0, eta=3.0),
         "real": get_crossover("real_sbx", prob=1.0, eta=3.0),
     })
 
     mutation = MixedVariableMutation(mask, {
         "bin": get_mutation("bin_bitflip"),
-        "int": get_mutation("int_pm", eta=10.0),
+        "int": get_mutation("int_pm", eta=3.0),
         "real": get_mutation("real_pm", eta=3.0),
     })
 
@@ -118,3 +122,28 @@ def explode_design_vector(x, N, indices=None):
             design_vector[k] = x[v]
 
     return design_vector
+
+
+class InitialSampling(Sampling):
+    """
+    Randomly sample points in the real space by considering the lower and upper bounds of the problem.
+    """
+
+    def __init__(self, var_type=np.float) -> None:
+        super().__init__()
+        self.var_type = var_type
+
+    def _do(self, problem, n_samples, **kwargs):
+
+        # Generate random for all
+        val = np.random.random((n_samples, problem.n_var))
+        val = denormalize(val, problem.xl, problem.xu)
+
+        # Then specifically select 1 pass in each solution
+        N_pass = int((problem.n_var - 2) / 2)
+        _, ind = design_vector_indices(N_pass)
+        for i in range(n_samples):
+            val[i, 0:N_pass] = False
+            val[i, i % N_pass] = True
+
+        return val

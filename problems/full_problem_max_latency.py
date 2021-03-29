@@ -32,15 +32,19 @@ class FullMaxLatencyProblem(Problem):
 
         # Compute overlap matrix
         self.O_matrix = contact.compute_overlap_matrix(self.b_tofs, self.e_tofs)
+        self.O_tril = np.tril(np.ones((self.N_passes, self.N_passes)), -1) == 1
 
         # Compute variables needed during pass
-        self.tof_s_list = generate_pass_tof_list(grouped_passes_df)
+        self.tof_s_list = List(generate_pass_tof_list(grouped_passes_df))
+        self.margin_dB_list = List(self.tof_s_list)
 
         range_m_list = generate_pass_range_list(grouped_passes_df)
-        self.fspl_dB_list = link_budget.compute_passes_fspl(range_m_list, self.sys_param.fc_Hz)
+        self.fspl_dB_list = List(link_budget.compute_passes_fspl(range_m_list, self.sys_param.fc_Hz))
 
         r_ab_m_list = generate_pass_r_ab_list(grouped_passes_df)
         self.theta_rad_list, self.phi_rad_list = visibility.compute_passes_angles(r_ab_m_list)
+        self.theta_rad_list = List(self.theta_rad_list)
+        self.phi_rad_list = List(self.phi_rad_list)
 
         # Get design vector indices and bounds
         self.x_length, self.x_indices = design_vector_indices(self.N_passes)
@@ -69,17 +73,14 @@ class FullMaxLatencyProblem(Problem):
 
         # Calculate overlap constraint
         overlap = self.O_matrix * design_vector['pass'].astype('bool')
-        overlap = overlap[np.tril(np.ones((self.N_passes, self.N_passes)), -1) == 1]
+        overlap = (overlap[self.O_tril] > 0) * 1.
         g_overlap = overlap.flatten()  # Non-overlapping constraint
 
         # Compute throughput of selected passes
         sel_pass = design_vector['pass'].astype('bool') > 0
         num_pass = int(np.sum(sel_pass))
         if num_pass > 0:
-            tof_s_list = List(list(compress(self.tof_s_list, sel_pass)))  # List of tofs of the selected passes
-            fspl_dB_list = List(list(compress(self.fspl_dB_list, sel_pass)))
-            theta_rad_list = List(list(compress(self.theta_rad_list, sel_pass)))
-            phi_rad_list = List(list(compress(self.phi_rad_list, sel_pass)))
+            pass_inds = np.nonzero(sel_pass)[0]
 
             Ptx_dBm_array = design_vector['power'][sel_pass].astype('float64')
             Gtx_dBi = design_vector['antenna'][0]
@@ -91,30 +92,27 @@ class FullMaxLatencyProblem(Problem):
             eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
 
             # Throughput
-            margin_dB_list, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(tof_s_list,
-                                                                                                      fspl_dB_list,
-                                                                                                      Ptx_dBm_array,
-                                                                                                      Gtx_dBi,
-                                                                                                      self.sys_param.GT_dBK,
-                                                                                                      B_Hz,
-                                                                                                      alpha,
-                                                                                                      EsN0_req_dB_array,
-                                                                                                      eta_bitsym_array,
-                                                                                                      self.sys_param.margin_dB)
+            b_s_array, e_s_array, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(
+                pass_inds, self.tof_s_list, self.fspl_dB_list,
+                Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
+                EsN0_req_dB_array, eta_bitsym_array, self.sys_param.margin_dB)
+
             # Energy
             eta_maee_array = eta_maee_array[vcm_array]
             f_energy = energy.compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array)
 
             # Pointing
             f_pointing, rates_rads_array[sel_pass] = pointing.compute_pointing_passes(
-                tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi)
+                pass_inds, self.tof_s_list, self.theta_rad_list, self.phi_rad_list, Gtx_dBi)
 
             # Latency
-            f_latency = latency.compute_max_latency_passes(tof_s_list, margin_dB_list, self.t_end_s)
+            if b_s_array.size > 0:
+                f_latency = latency.compute_max_latency_passes(b_s_array, e_s_array)
 
         # Handle constraints
         gg_constraint = compute_constraints(self.reqs, f_throughput, f_latency=f_latency, f_energy=f_energy,
                                             f_pointing=f_pointing, rates_rads_array=rates_rads_array)
 
+        print(np.sum(g_overlap))
         out["F"] = [-1*f_throughput, f_latency, f_energy, f_pointing]
-        out["G"] = np.concatenate([g_overlap, gg_constraint])
+        out["G"] = np.append([np.sum(g_overlap)], gg_constraint)

@@ -13,14 +13,14 @@ def compute_passes_fspl(range_m_list, fc_Hz):
     return [compute_fspl(range_m_list[i], fc_Hz) for i in range(len(range_m_list))]
 
 
-@njit
+@njit(parallel=True)
 def compute_snr(fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz):
     kB_dB = 10 * np.log10(B_Hz * 1.380649e-23)  # k*B in dB
     SNR_dB = Ptx_dBm - 30 + Gtx_dBi - fspl_dB + GT_dBK - kB_dB  # Compute SNR
 
     return SNR_dB
 
-@njit
+@njit(parallel=True)
 def compute_throughput_from_margin(tof_s, margin_dB, B_Hz, alpha, eta_bitsym):
     """
     Computes link time and throughput where margin is positive

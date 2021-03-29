@@ -1,8 +1,8 @@
 import numpy as np
 from pymoo.model.problem import Problem
 
+import contact
 from hermes.postprocessing import generate_passes_df_reduced
-from models.models import compute_overlap_matrix, compute_contact_time
 from notebooks.optimization_problems.design_vector import explode_design_vector
 
 
@@ -19,7 +19,7 @@ class ContactProblem(Problem):
         self.e_tofs = self.passes_df['end_tof'].values
 
         # Compute overlap matrix
-        self.O_matrix = compute_overlap_matrix(self.b_tofs, self.e_tofs)
+        self.O_matrix = contact.compute_overlap_matrix(self.b_tofs, self.e_tofs)
 
         super().__init__(n_var=self.N_passes,
                          n_obj=1,
@@ -32,12 +32,14 @@ class ContactProblem(Problem):
     def _evaluate(self, x, out, *args, **kwargs):
 
         design_vector = explode_design_vector(x, self.N_passes)
-        f1 = -1 * compute_contact_time(design_vector['pass'], self.b_tofs, self.e_tofs) # Contact time objective
 
-        overlap = self.O_matrix * design_vector['pass']
-        overlap = overlap[np.tril(np.ones((self.N_passes, self.N_passes)), -1) == 1]
-        g1 = overlap.flatten()  # Non-overlapping constraint
+        x_pass = design_vector['pass'].astype('bool')
+        f1 = -1 * contact.compute_contact_time(x_pass, self.b_tofs, self.e_tofs) # Contact time objective
+
+        x_pass_tile = x_pass.repeat(self.N_passes).reshape((-1, self.N_passes))
+        overlap = self.O_matrix * x_pass_tile * x_pass_tile.T
+        g_overlap = np.sum(overlap > 0)
 
         out["F"] = f1
-        out["G"] = g1
+        out["G"] = g_overlap
 
