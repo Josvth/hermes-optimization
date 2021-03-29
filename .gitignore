@@ -1,2 +1,4 @@
 /bulk_data
 /cenv
+*.pyc
+/.idea
