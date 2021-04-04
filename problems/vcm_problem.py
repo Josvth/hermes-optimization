@@ -33,10 +33,10 @@ class VCMProblem(Problem):
         self.O_matrix = contact.compute_overlap_matrix(self.b_tofs, self.e_tofs)
 
         # Compute variables needed during pass
-        self.tof_s_list = List(generate_pass_tof_list(grouped_passes_df))
+        self.tof_s_list = generate_pass_tof_list(grouped_passes_df)
 
         range_m_list = generate_pass_range_list(grouped_passes_df)
-        self.fspl_dB_list = List(link_budget.compute_passes_fspl(range_m_list, self.sys_param.fc_Hz))
+        self.fspl_dB_list = link_budget.compute_passes_fspl(range_m_list, self.sys_param.fc_Hz)
 
         # Get design vector indices and bounds
         self.x_length, self.x_indices = design_vector_indices(self.N_passes)
@@ -78,7 +78,7 @@ class VCMProblem(Problem):
             eta_maee_array = self.sys_param.eta_maee_array
 
             _, _, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(
-                pass_inds, self.tof_s_list, self.fspl_dB_list,
+                pass_inds, List(self.tof_s_list), List(self.fspl_dB_list),
                 Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
                 EsN0_req_dB_array, eta_bitsym_array, self.sys_param.margin_dB)
 

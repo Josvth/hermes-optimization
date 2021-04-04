@@ -87,7 +87,6 @@ class LinkBudgetProblem(Problem):
                                                                        alpha,
                                                                        EsN0_req_dB_array,
                                                                        eta_bitsym_array,
-
                                                                        self.sys_param.margin_dB)
 
             # Ptx_dBm_array = np.array([Ptx_dBm] * np.sum(sel_pass))
