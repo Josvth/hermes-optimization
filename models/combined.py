@@ -72,7 +72,7 @@ def compute_fg(N_passes, O_matrix, t_sim_s, tof_s_list, fspl_dB_list, theta_rad_
     if max_pointing > 0:
         g_pointing_maximum = np.maximum((f_pointing - max_pointing) / max_pointing, 0)
 
-    ff = [-1 * f_throughput, f_latency, f_energy, f_pointing]
-    gg = [g_overlap, g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum]
+    ff = np.array([-1 * f_throughput, f_latency, f_energy, f_pointing])
+    gg = np.array([g_overlap, g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum])
 
     return ff, gg

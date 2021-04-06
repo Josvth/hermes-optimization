@@ -11,9 +11,9 @@ from notebooks.optimization_problems.design_vector import design_vector_indices,
     explode_design_vector
 
 
-class LatencyProblem(Problem):
+class CombinedProblem(Problem):
 
-    def __init__(self, instances_df, system_parameters, requirements=Requirements(), *args, **kwargs):
+    def __init__(self, instances_df, system_parameters, requirements=Requirements(), f_mask=[0, 1, 2, 3], *args, **kwargs):
         # self.instances_df = instances_df
         self.sys_param = system_parameters
         self.reqs = requirements
@@ -44,9 +44,11 @@ class LatencyProblem(Problem):
         self.x_length, self.x_indices = design_vector_indices(self.N_passes)
         self.xl, self.xu = design_vector_bounds(self.x_length, self.x_indices, self.sys_param)
 
+        self.f_mask = f_mask
+
         super().__init__(n_var=self.x_length,
-                         n_obj=4,
-                         n_constr=int((self.N_passes * (self.N_passes + 1)) / 2) + 5 + self.N_passes,
+                         n_obj=len(f_mask),
+                         n_constr=1 + 5 + self.N_passes,
                          xl=self.xl,
                          xu=self.xu,
                          elementwise_evaluation=True,
@@ -77,5 +79,5 @@ class LatencyProblem(Problem):
 
         #print(gg[0])
 
-        out["F"] = ff
+        out["F"] = ff[self.f_mask]
         out["G"] = gg
