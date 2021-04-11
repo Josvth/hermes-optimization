@@ -54,7 +54,7 @@ class CombinedProblem(Problem):
                          elementwise_evaluation=True,
                          **kwargs)
 
-    def _evaluate(self, x, out, *args, **kwargs):
+    def evaluate_unmasked(self, x):
 
         # Explode design vector
         design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
@@ -77,7 +77,43 @@ class CombinedProblem(Problem):
             self.reqs.min_throughput, self.reqs.max_throughput, self.reqs.max_latency, self.reqs.max_energy,
             self.reqs.max_pointing, self.reqs.max_rate_rads)
 
-        #print(gg[0])
+        return ff, gg
+
+    def _evaluate(self, x, out, *args, **kwargs):
+
+        ff, gg = self.evaluate_unmasked(x)
 
         out["F"] = ff[self.f_mask]
         out["G"] = gg
+
+class CombinedProblemDownSelect(CombinedProblem):
+
+    def __init__(self, instances_df, system_parameters, requirements=Requirements(), f_mask=[0, 1, 2, 3], *args,
+                 **kwargs):
+        super().__init__(instances_df, system_parameters, requirements, f_mask, *args, **kwargs)
+        self.n_constr = self.n_constr - 1
+
+    def evaluate_unmasked(self, x):
+
+        # Explode design vector
+        design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
+
+        x_pass = design_vector['pass'].astype('bool')
+        Ptx_dBm_array = design_vector['power'].astype('float64')
+        Gtx_dBi = design_vector['antenna'][0]
+        B_Hz = self.sys_param.B_Hz_array[int(design_vector['bandwidth'][0])]
+        alpha = self.sys_param.alpha_array[0]
+        carriers = multi_carrier.get_sub_carriers(B_Hz)
+        EsN0_req_dB_array = np.squeeze(self.sys_param.EsN0_req_dB_array[:, carriers - 1])
+        eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers - 1])
+        eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
+
+        ff, gg = combined.compute_fg_no_down_select(
+            self.N_passes, self.O_matrix, self.t_sim_s,
+            List(self.tof_s_list), List(self.fspl_dB_list), List(self.theta_rad_list), List(self.phi_rad_list),
+            x_pass, Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
+            EsN0_req_dB_array, eta_bitsym_array, eta_maee_array, self.sys_param.margin_dB,
+            self.reqs.min_throughput, self.reqs.max_throughput, self.reqs.max_latency, self.reqs.max_energy,
+            self.reqs.max_pointing, self.reqs.max_rate_rads)
+
+        return ff, gg

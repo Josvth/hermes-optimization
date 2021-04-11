@@ -50,7 +50,6 @@ def design_vector_bounds(var_count, indices, system_parameters):
 
     return xl, xu
 
-
 def design_vector_default_scm(var_count, indices, real_power = False):
     from pymoo.operators.mixed_variable_operator import MixedVariableSampling, MixedVariableCrossover, \
         MixedVariableMutation

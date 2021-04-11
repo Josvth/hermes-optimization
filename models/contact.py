@@ -18,3 +18,22 @@ def compute_contact_time(pass_select, begin_tofs, end_tofs):
     contact_time = np.sum(end_tofs[pass_select == 1] - begin_tofs[pass_select == 1])
 
     return contact_time
+
+@njit
+def compute_overlap(x_pass, O_matrix):
+    N_passes = len(x_pass)
+    x_pass_tile = x_pass.repeat(N_passes).reshape((-1, N_passes))
+    overlap = O_matrix * x_pass_tile * x_pass_tile.T
+    N_overlap = np.sum(overlap > 0)
+
+    return N_overlap
+
+@njit
+def down_select_passes(x_pass, O_matrix):
+
+    for i in range(len(x_pass)):
+        if x_pass[i]:               # If the pass is selected
+            mask = O_matrix[:,i] > 0
+            x_pass = x_pass & ~mask # Mask all following overlapping passes
+
+    return x_pass
