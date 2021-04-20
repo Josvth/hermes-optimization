@@ -61,11 +61,19 @@ def compute_passes_throughput(pass_inds, tof_s_list, fspl_dB_list, Ptx_dBm_array
     for i in prange(len(pass_inds)):
         p = pass_inds[i]
 
-        b_s_array[i], e_s_array[i], _, linktime_s_array[i], throughput_bits_array[i], vcm_array[i] = compute_throughput_vcm(
+        b_s_array[i], e_s_array[i], _, linktime_s_array[i], throughput_bits_array[i], vcm_array[
+            i] = compute_throughput_vcm(
             tof_s_list[p], fspl_dB_list[p],
             Ptx_dBm_array[i], Gtx_dBi, GT_dBK,
             B_Hz, alpha,
             EsN0_req_dB_array,
             eta_bitsym_array, min_margin_dB)
 
-    return b_s_array[~np.isnan(b_s_array)], e_s_array[~np.isnan(b_s_array)], linktime_s_array, np.sum(throughput_bits_array), vcm_array
+    # ToDo: remove the sum around throughput for more functionality
+    return b_s_array[~np.isnan(b_s_array)], e_s_array[~np.isnan(b_s_array)], linktime_s_array, np.sum(
+        throughput_bits_array), vcm_array
+
+
+def _make_compute_passes_throughput():
+    # This function makes a compiled function that can be passed to other @njit functions
+    return compute_passes_throughput

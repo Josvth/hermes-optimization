@@ -3,9 +3,11 @@ from numba.typed import List
 from pymoo.model.problem import Problem
 
 import combined
+
 from hermes.postprocessing import generate_grouped_passed_df, generate_pass_range_list, \
     generate_pass_tof_list, generate_pass_r_ab_list
-from models import contact, link_budget, multi_carrier, visibility
+
+from models import contact, link_budget, multi_carrier, visibility, vcm
 from notebooks.optimization_problems.constraints import Requirements
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
@@ -99,6 +101,7 @@ class CombinedProblemDownSelect(CombinedProblem):
         design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
 
         x_pass = design_vector['pass'].astype('bool')
+
         Ptx_dBm_array = design_vector['power'].astype('float64')
         Gtx_dBi = design_vector['antenna'][0]
         B_Hz = self.sys_param.B_Hz_array[int(design_vector['bandwidth'][0])]
@@ -108,12 +111,61 @@ class CombinedProblemDownSelect(CombinedProblem):
         eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers - 1])
         eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
 
-        ff, gg = combined.compute_fg_no_down_select(
-            self.N_passes, self.O_matrix, self.t_sim_s,
+        # Downselect passes
+        x_pass = contact.down_select_passes(x_pass, self.O_matrix)
+        Ptx_dBm_array = Ptx_dBm_array[x_pass]
+
+        ff, gg = combined._compute_fg(
+            self.N_passes, self.t_sim_s,
             List(self.tof_s_list), List(self.fspl_dB_list), List(self.theta_rad_list), List(self.phi_rad_list),
             x_pass, Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
             EsN0_req_dB_array, eta_bitsym_array, eta_maee_array, self.sys_param.margin_dB,
             self.reqs.min_throughput, self.reqs.max_throughput, self.reqs.max_latency, self.reqs.max_energy,
             self.reqs.max_pointing, self.reqs.max_rate_rads)
+
+        return ff, gg
+
+
+class ExtendedCombinedProblem(CombinedProblem):
+
+    def __init__(self, instances_df, system_parameters, requirements=Requirements(), f_mask=[0, 1, 2, 3], *args,
+                 **kwargs):
+        super().__init__(instances_df, system_parameters, requirements, f_mask, *args, **kwargs)
+        self.n_constr = self.n_constr - 1
+
+        self.func_throughput = vcm._make_compute_passes_throughput()
+        self.func_energy = energy._make_compute_passes_energy_extended()
+        self.func_pointing = pointing._make_compute_pointing_passes()
+        self.func_latency = latency._make_compute_max_latency_passes()
+
+    def evaluate_unmasked(self, x):
+
+        # Explode design vector
+        design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
+
+        x_pass = design_vector['pass'].astype('bool')
+
+        Ptx_dBm_array = design_vector['power'].astype('float64')
+        Gtx_dBi = design_vector['antenna'][0]
+        B_Hz = self.sys_param.B_Hz_array[int(design_vector['bandwidth'][0])]
+        alpha = self.sys_param.alpha_array[0]
+        carriers = multi_carrier.get_sub_carriers(B_Hz)
+        EsN0_req_dB_array = np.squeeze(self.sys_param.EsN0_req_dB_array[:, carriers - 1])
+        eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers - 1])
+        eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
+
+        # Downselect passes
+        x_pass = contact.down_select_passes(x_pass, self.O_matrix)
+        Ptx_dBm_array = Ptx_dBm_array[x_pass]
+
+        ff, gg = combined.__compute_fg(
+            self.N_passes, self.t_sim_s,
+            List(self.tof_s_list), List(self.fspl_dB_list), List(self.theta_rad_list), List(self.phi_rad_list),
+            x_pass, Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
+            EsN0_req_dB_array, eta_bitsym_array, eta_maee_array, self.sys_param.margin_dB,
+            self.reqs.min_throughput, self.reqs.max_throughput, self.reqs.max_latency, self.reqs.max_energy,
+            self.reqs.max_pointing, self.reqs.max_rate_rads,
+            self.func_throughput, self.func_energy, self.func_pointing, self.func_latency
+            )
 
         return ff, gg
