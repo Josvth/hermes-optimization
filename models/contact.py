@@ -31,9 +31,11 @@ def compute_overlap(x_pass, O_matrix):
 @njit
 def down_select_passes(x_pass, O_matrix):
 
+    M = ~(O_matrix > 0)
+
     for i in range(len(x_pass)):
         if x_pass[i]:               # If the pass is selected
-            mask = O_matrix[:,i] > 0
-            x_pass = x_pass & ~mask # Mask all following overlapping passes
+            mask = M[:,i]
+            x_pass = x_pass & mask  # Mask all following overlapping passes
 
     return x_pass
