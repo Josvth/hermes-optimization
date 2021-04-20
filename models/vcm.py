@@ -37,7 +37,20 @@ def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha
 @njit(parallel=True)
 def compute_passes_throughput(pass_inds, tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
                               alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
-
+    """
+    :param numpy.ndarray pass_inds: Array of pass indices to consider in the computation
+    :param numba.typed.List tof_s_list: List of ndarrays with time-of-flights per pass
+    :param numba.typed.List fspl_dB_list: List of ndarrays with free-space-path-loss per pass
+    :param numpy.ndarray Ptx_dBm_array: Array with transmitted power for SELECTED passes (ToDo: change this to be down selected by the pass_inds in this function)
+    :param float Gtx_dBi: Antenna gain in dBi
+    :param float GT_dBK: Receiver G/T in dBK
+    :param float B_Hz: Bandwidth in Hz
+    :param float alpha: Roll-off factor
+    :param numpy.ndarray EsN0_req_dB_array: Array with required EbN0 for selectable MODCODs
+    :param numpy.ndarray eta_bitsym_array: Array with spectral efficiencies for selectable MODCODs
+    :param float min_margin_dB: Minimum margin in dB to apply to the link-budget
+    :return: tuple(numpy.ndarray, numpy.ndarray, np.ndarray, float, numpy.ndarray)
+    """
     b_s_array = np.empty(len(pass_inds), np.float64)
     e_s_array = np.empty(len(pass_inds), np.float64)
 
