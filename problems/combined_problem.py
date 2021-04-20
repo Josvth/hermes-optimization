@@ -7,7 +7,7 @@ import combined
 from hermes.postprocessing import generate_grouped_passed_df, generate_pass_range_list, \
     generate_pass_tof_list, generate_pass_r_ab_list
 
-from models import contact, link_budget, multi_carrier, visibility, vcm
+from models import contact, link_budget, multi_carrier, visibility, vcm, energy, pointing, latency
 from notebooks.optimization_problems.constraints import Requirements
 from notebooks.optimization_problems.design_vector import design_vector_indices, design_vector_bounds, \
     explode_design_vector
@@ -133,11 +133,6 @@ class ExtendedCombinedProblem(CombinedProblem):
         super().__init__(instances_df, system_parameters, requirements, f_mask, *args, **kwargs)
         self.n_constr = self.n_constr - 1
 
-        self.func_throughput = vcm._make_compute_passes_throughput()
-        self.func_energy = energy._make_compute_passes_energy_extended()
-        self.func_pointing = pointing._make_compute_pointing_passes()
-        self.func_latency = latency._make_compute_max_latency_passes()
-
     def evaluate_unmasked(self, x):
 
         # Explode design vector
@@ -158,14 +153,48 @@ class ExtendedCombinedProblem(CombinedProblem):
         x_pass = contact.down_select_passes(x_pass, self.O_matrix)
         Ptx_dBm_array = Ptx_dBm_array[x_pass]
 
-        ff, gg = combined.__compute_fg(
-            self.N_passes, self.t_sim_s,
-            List(self.tof_s_list), List(self.fspl_dB_list), List(self.theta_rad_list), List(self.phi_rad_list),
-            x_pass, Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
-            EsN0_req_dB_array, eta_bitsym_array, eta_maee_array, self.sys_param.margin_dB,
-            self.reqs.min_throughput, self.reqs.max_throughput, self.reqs.max_latency, self.reqs.max_energy,
-            self.reqs.max_pointing, self.reqs.max_rate_rads,
-            self.func_throughput, self.func_energy, self.func_pointing, self.func_latency
-            )
+        # Pulled this code out of njit because I don't like it being in njit
+        # Compute objectives
+        f_throughput = 0  # Maximum throughput objective
+        f_energy = 0  # Minimum energy objective
+        f_pointing = 0  # Minimum pointing objective
+        f_latency = 0  # Minimize latency objective
+
+        # rates_rads_array = np.zeros(N_passes) # Todo fix rate computation/constraining
+
+        if np.sum(x_pass) > 0:
+            pass_inds = np.nonzero(x_pass)[0]
+
+            # Throughput
+            b_s_array, e_s_array, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(
+                pass_inds, self.tof_s_list, self.fspl_dB_list,
+                Ptx_dBm_array, Gtx_dBi, self.GT_dBK, B_Hz, alpha,
+                EsN0_req_dB_array, eta_bitsym_array, self.margin_dB)
+
+            # Energy
+            eta_maee_array = eta_maee_array[vcm_array]
+            f_energy = energy.compute_passes_energy_extended(linktime_s_array, Ptx_dBm_array, eta_maee_array,
+                                                             B_Hz, alpha, eta_bitsym_array[vcm_array])
+
+            # Pointing
+            f_pointing, _ = pointing.compute_pointing_passes(
+                pass_inds, self.tof_s_list, self.theta_rad_list, self.phi_rad_list, Gtx_dBi)
+
+            # Latency
+            if b_s_array.size > 0:
+                f_latency = latency.compute_max_latency_passes(b_s_array, e_s_array, self.t_sim_s)
+
+        # Compute basic constraints
+        g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum = \
+            combined.compute_constraints(f_throughput, f_latency, f_energy, f_pointing,
+                                         self.reqs.min_throughput, self.reqs.max_throughput,
+                                         self.reqs.max_latency,
+                                         self.reqs.max_energy,
+                                         self.reqs.max_pointing, self.reqs.max_rate_rads)
+
+        # Combine into single outputs
+        ff = np.array([-1 * f_throughput, f_latency, f_energy, f_pointing])
+        gg = np.array([g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum,
+                       g_pointing_maximum])
 
         return ff, gg
