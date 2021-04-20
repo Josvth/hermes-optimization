@@ -73,7 +73,3 @@ def compute_passes_throughput(pass_inds, tof_s_list, fspl_dB_list, Ptx_dBm_array
     return b_s_array[~np.isnan(b_s_array)], e_s_array[~np.isnan(b_s_array)], linktime_s_array, np.sum(
         throughput_bits_array), vcm_array
 
-
-def _make_compute_passes_throughput():
-    # This function makes a compiled function that can be passed to other @njit functions
-    return compute_passes_throughput
