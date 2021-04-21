@@ -36,7 +36,7 @@ def compute_passes_energy_maee(linktime_s_array, Ptx_dBm_array, eta_maee_array):
 # Extended models
 @njit
 def modulator_power(Rb_bits):
-    Pmod = 0.015 * Rb_bits + 14.967 # Modulator power as function of data rate
+    Pmod = 0.015 * Rb_bits / 1e6 + 14.967 # Modulator power as function of data rate
     return Pmod
 
 @njit
