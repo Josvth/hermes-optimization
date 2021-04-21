@@ -14,6 +14,12 @@ import contact
 # Todo: move to the experimental interface where objective function calculation is done by passing functions
 
 @njit
+def clip(a, a_min, a_max):
+    a = np.maximum(a, a_min)
+    a = np.minimum(a, a_max)
+    return a
+
+@njit
 def compute_constraints(f_throughput, f_latency, f_energy, f_pointing,
                         min_throughput, max_throughput, max_latency, max_energy, max_pointing, max_rate_rads):
 
@@ -21,24 +27,24 @@ def compute_constraints(f_throughput, f_latency, f_energy, f_pointing,
     g_throughput_minimum = 0
     g_throughput_maximum = 0
     if min_throughput > 0:
-        g_throughput_minimum = np.maximum((min_throughput - f_throughput) / min_throughput, 0)
+        g_throughput_minimum = clip((min_throughput - f_throughput) / min_throughput, 0, 1)
     if max_throughput > 0:
-        g_throughput_maximum = np.maximum((f_throughput - max_throughput) / max_throughput, 0)
+        g_throughput_maximum = clip((f_throughput - max_throughput) / max_throughput, 0, 1)
 
     # Maximum latency
     g_latency_maximum = 0
     if max_latency > 0:
-        g_latency_maximum = np.maximum((f_latency - max_latency) / max_latency, 0)
+        g_latency_maximum = clip((f_latency - max_latency) / max_latency, 0, 1)
 
     # Maximum energy
     g_energy_maximum = 0
     if max_energy > 0:
-        g_energy_maximum = np.maximum((f_energy - max_energy) / max_energy, 0)
+        g_energy_maximum = clip((f_energy - max_energy) / max_energy, 0, 1)
 
     # Maximum pointing
     g_pointing_maximum = 0
     if max_pointing > 0:
-        g_pointing_maximum = np.maximum((f_pointing - max_pointing) / max_pointing, 0)
+        g_pointing_maximum = clip((f_pointing - max_pointing) / max_pointing, 0, 1)
 
     return g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum
 
