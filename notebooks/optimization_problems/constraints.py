@@ -3,6 +3,8 @@ from numba import njit
 
 
 class Requirements(object):
+    # Todo change this interface to a dict. to have a more flexible operation.
+
     # Throughput
     min_throughput = 5e9
     max_throughput = -1

@@ -149,11 +149,17 @@ class ExtendedCombinedProblem(CombinedProblem):
         eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers - 1])
         eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
 
+        tof_s_list = List(self.tof_s_list)
+        fspl_dB_list = List(self.fspl_dB_list)
+        theta_rad_list = List(self.theta_rad_list)
+        phi_rad_list = List(self.phi_rad_list)
+
         # Downselect passes
         x_pass = contact.down_select_passes(x_pass, self.O_matrix)
         Ptx_dBm_array = Ptx_dBm_array[x_pass]
 
         # Pulled this code out of njit because I don't like it being in njit
+
         # Compute objectives
         f_throughput = 0  # Maximum throughput objective
         f_energy = 0  # Minimum energy objective
@@ -167,9 +173,9 @@ class ExtendedCombinedProblem(CombinedProblem):
 
             # Throughput
             b_s_array, e_s_array, linktime_s_array, f_throughput, vcm_array = vcm.compute_passes_throughput(
-                pass_inds, self.tof_s_list, self.fspl_dB_list,
-                Ptx_dBm_array, Gtx_dBi, self.GT_dBK, B_Hz, alpha,
-                EsN0_req_dB_array, eta_bitsym_array, self.margin_dB)
+                pass_inds, tof_s_list, fspl_dB_list,
+                Ptx_dBm_array, Gtx_dBi, self.sys_param.GT_dBK, B_Hz, alpha,
+                EsN0_req_dB_array, eta_bitsym_array, self.sys_param.margin_dB)
 
             # Energy
             eta_maee_array = eta_maee_array[vcm_array]
@@ -178,7 +184,7 @@ class ExtendedCombinedProblem(CombinedProblem):
 
             # Pointing
             f_pointing, _ = pointing.compute_pointing_passes(
-                pass_inds, self.tof_s_list, self.theta_rad_list, self.phi_rad_list, Gtx_dBi)
+                pass_inds, tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi)
 
             # Latency
             if b_s_array.size > 0:

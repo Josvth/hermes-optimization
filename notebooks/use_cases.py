@@ -34,10 +34,25 @@ def _eo():
     satellite = Satellite.circular(hermes.objects.Earth.poli_body, 500 * u.km, inc=98.0 * u.deg, raan=0.0 * u.deg,
                                    arglat=0 * u.deg)
     use_case['satellite'] = satellite
+    use_case['T_orbit_s'] = satellite.period.to(u.s).value
+    use_case['T_sim_s'] = use_case['T_orbit_s'] * 3
 
     # Define requirements
+    T_bitorbit = 120 * 8 * 1e9 # Throughput per orbit [bit]
+    use_case['T_bitorbit_min'] = T_bitorbit * 0.9 # 90% of target value
+    use_case['T_bitorbit_max'] = T_bitorbit * 1.1 # 110% of target value
+
+    E_Jorbit = 50 * use_case['T_orbit_s'] # Energy consumption per orbit [J]
+    use_case['E_Jorbit_max'] = E_Jorbit * 1.1 # 100% of target value
+
+    L_sorbit = (1.5 * u.h).to(u.s).value
+
     requirements = Requirements()
-    # do something
+    requirements.min_throughput = use_case['T_bitorbit_min'] * (use_case['T_sim_s'] / use_case['T_orbit_s'])
+    requirements.max_throughput = use_case['T_bitorbit_max'] * (use_case['T_sim_s'] / use_case['T_orbit_s'])
+    requirements.max_energy = use_case['E_Jorbit_max'] * (use_case['T_sim_s'] / use_case['T_orbit_s'])
+    requirements.max_latency = L_sorbit
+
     use_case['requirements'] = requirements
 
     return use_case
