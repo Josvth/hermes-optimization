@@ -37,21 +37,25 @@ def _eo():
     use_case['T_orbit_s'] = satellite.period.to(u.s).value
     use_case['T_sim_s'] = use_case['T_orbit_s'] * 3
 
-    # Define requirements
-    T_bitorbit = 120 * 8 * 1e9 # Throughput per orbit [bit]
-    use_case['T_bitorbit_min'] = T_bitorbit * 0.9 # 90% of target value
-    use_case['T_bitorbit_max'] = T_bitorbit * 1.1 # 110% of target value
+    # Define targets
+    use_case['T_bitorbit_target'] = 120 * 8 * 1e9 # Throughput per orbit [bit]
+    use_case['L_sorbit_target'] = 0
+    use_case['E_Jorbit_target'] = 50 * use_case['T_orbit_s'] * 0.145 # Energy consumption per orbit [J]
+    use_case['P_sorbit_target'] = use_case['T_sim_s']
 
-    E_Jorbit = 50 * use_case['T_orbit_s'] # Energy consumption per orbit [J]
-    use_case['E_Jorbit_max'] = E_Jorbit * 1.1 # 100% of target value
+    # Define constraints
+    perc_margin = 0.35 # percentage above and below target values
+    use_case['T_bitorbit_min'] = use_case['T_bitorbit_target'] * (1 - perc_margin)
+    use_case['T_bitorbit_max'] = use_case['T_bitorbit_target'] * (1 + perc_margin)
 
-    L_sorbit = (1.5 * u.h).to(u.s).value
+    use_case['E_Jorbit_max'] = use_case['E_Jorbit_target'] * 2
+    use_case['L_sorbit_max'] = (1.5 * u.h).to(u.s).value
 
     requirements = Requirements()
     requirements.min_throughput = use_case['T_bitorbit_min'] * (use_case['T_sim_s'] / use_case['T_orbit_s'])
     requirements.max_throughput = use_case['T_bitorbit_max'] * (use_case['T_sim_s'] / use_case['T_orbit_s'])
     requirements.max_energy = use_case['E_Jorbit_max'] * (use_case['T_sim_s'] / use_case['T_orbit_s'])
-    requirements.max_latency = L_sorbit
+    requirements.max_latency = use_case['L_sorbit_max']
 
     use_case['requirements'] = requirements
 
@@ -88,7 +92,7 @@ def _O3b():
 
     # Define system parameters
     target['frequency'] = 28.4e9
-    target['GT_dBK'] = 13.2
+    target['GT_dBK'] = 7.0
 
     return target
 
