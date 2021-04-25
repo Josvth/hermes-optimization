@@ -133,8 +133,7 @@ class ExtendedCombinedProblem(CombinedProblem):
         super().__init__(instances_df, system_parameters, requirements, f_mask, *args, **kwargs)
         self.n_constr = self.n_constr - 1
 
-    def evaluate_unmasked(self, x):
-
+    def evaluate_unmasked_raw(self, x):
         # Explode design vector
         design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
 
@@ -178,8 +177,7 @@ class ExtendedCombinedProblem(CombinedProblem):
                 EsN0_req_dB_array, eta_bitsym_array, self.sys_param.margin_dB)
 
             # Energy
-            eta_maee_array = eta_maee_array[vcm_array]
-            f_energy = energy.compute_passes_energy_extended(linktime_s_array, Ptx_dBm_array, eta_maee_array,
+            f_energy = energy.compute_passes_energy_extended(linktime_s_array, Ptx_dBm_array, eta_maee_array[vcm_array],
                                                              B_Hz, alpha, eta_bitsym_array[vcm_array])
 
             # Pointing
@@ -190,9 +188,17 @@ class ExtendedCombinedProblem(CombinedProblem):
             if b_s_array.size > 0:
                 f_latency = latency.compute_max_latency_passes(b_s_array, e_s_array, self.t_sim_s)
 
+        return f_throughput, f_latency, f_energy, f_pointing, \
+               b_s_array, e_s_array, linktime_s_array, vcm_array
+
+
+    def evaluate_unmasked(self, x):
+
+        f_throughput, f_latency, f_energy, f_pointing, _, _, _, _ = self.evaluate_unmasked_raw(x)
+
         # Compute basic constraints
         g_throughput_minimum, g_throughput_maximum, g_latency_maximum, g_energy_maximum, g_pointing_maximum = \
-            combined.compute_constraints(f_throughput, f_latency, f_energy, f_pointing,
+            combined.compute_constraints_nc(f_throughput, f_latency, f_energy, f_pointing,
                                          self.reqs.min_throughput, self.reqs.max_throughput,
                                          self.reqs.max_latency,
                                          self.reqs.max_energy,

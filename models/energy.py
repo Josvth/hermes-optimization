@@ -2,8 +2,12 @@ import numpy as np
 from numba import njit, prange
 
 @njit
+def pa_power(Ptx_dBm, eta):
+    return (1 / eta) * 10 ** ((Ptx_dBm - 30) / 10)
+
+@njit
 def compute_energy(linktime_s, Ptx_dBm, eta):
-    energy_J = (1 / eta) * 10 ** ((Ptx_dBm - 30) / 10) * linktime_s  # Energy in J
+    energy_J = pa_power(Ptx_dBm, eta) * linktime_s  # Energy in J
     return energy_J
 
 
