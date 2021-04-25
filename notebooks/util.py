@@ -305,7 +305,7 @@ def plot_settings(axs, problem, setting, res, scale_factors=np.array([1 / -1e9, 
     plt.tight_layout()
 
 
-def plot_used_passes(case, instances_df, problem, x_pass):
+def plot_used_passes(case, instances_df, x_pass):
 
 
     pass_ind = np.nonzero(x_pass)[0]
