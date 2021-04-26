@@ -15,7 +15,6 @@ def print_targets(case):
     print("E_target: %.2f kJ (max: %.2f kJ)" % (case['E_Jorbit_target'] / 1e3, case['E_Jorbit_max'] / 1e3))
     print("P_target: %.2f s" % (case['P_sorbit_target']))
 
-
 def get_selection(problem, res):
     x_pass = res.X[:, problem.x_indices['pass']].astype('bool')
     for i in range(x_pass.shape[0]):
@@ -306,7 +305,6 @@ def plot_settings(axs, problem, setting, res, scale_factors=np.array([1 / -1e9, 
 
 
 def plot_used_passes(case, instances_df, x_pass):
-
 
     pass_ind = np.nonzero(x_pass)[0]
 

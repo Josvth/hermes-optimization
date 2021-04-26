@@ -41,6 +41,8 @@ def _iotm2m():
     # do something
     use_case['requirements'] = requirements
 
+    use_case['prefix'] = 'iot_'
+
     return use_case
 
 
@@ -78,6 +80,7 @@ def _eo():
     requirements.max_latency = use_case['L_sorbit_max']
 
     use_case['requirements'] = requirements
+    use_case['prefix'] = 'eo_'
 
     return use_case
 
@@ -97,6 +100,8 @@ def _telesat():
     target['frequency'] = 20e9
     target['GT_dBK'] = 13.2
 
+    target['prefix'] = 'telesat_'
+
     return target
 
 
@@ -113,6 +118,8 @@ def _O3b():
     # Define system parameters
     target['frequency'] = 28.4e9
     target['GT_dBK'] = 7.0
+
+    target['prefix'] = 'o3b_'
 
     return target
 
