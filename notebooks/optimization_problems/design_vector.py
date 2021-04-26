@@ -82,7 +82,7 @@ def design_vector_default_scm(var_count, indices, real_power = False):
     })
 
     mutation = MixedVariableMutation(mask, {
-        "bin": get_mutation("bin_bitflip"),
+        "bin": get_mutation("bin_bitflip", prob=0.01),
         "int": get_mutation("int_pm", eta=3.0),
         "real": get_mutation("real_pm", eta=3.0),
     })
