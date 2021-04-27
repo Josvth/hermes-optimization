@@ -1,4 +1,5 @@
 import numpy as np
+from pymoo.model.crossover import Crossover
 from pymoo.model.sampling import Sampling
 from pymoo.util.normalization import denormalize
 
@@ -83,6 +84,55 @@ def design_vector_default_scm(var_count, indices, real_power = False):
 
     mutation = MixedVariableMutation(mask, {
         "bin": get_mutation("bin_bitflip", prob=0.01),
+        "int": get_mutation("int_pm", eta=3.0),
+        "real": get_mutation("real_pm", eta=3.0),
+    })
+
+    return sampling, crossover, mutation
+
+class NoCrossover(Crossover):
+
+    def __init__(self, **kwargs):
+        super().__init__(2, 2, **kwargs)
+
+    def _do(self, problem, X, **kwargs):
+        return X
+
+def design_vector_no_crossover_scm(var_count, indices):
+    from pymoo.operators.mixed_variable_operator import MixedVariableSampling, MixedVariableCrossover, \
+        MixedVariableMutation
+    from pymoo.factory import get_sampling, get_crossover, get_mutation
+
+    mapping_mask = dict()
+    mapping_mask['pass'] = "bin-no-cross"
+    mapping_mask['power'] = "real-no-cross"
+    mapping_mask['antenna'] = "real"
+    mapping_mask['bandwidth'] = "int"
+    #mapping_mask['rolloff'] = "int"
+    #mapping_mask['modcod'] = "int"
+
+    mask = [None] * var_count
+    for k, v in indices.items():
+        for i in v:
+            mask[i] = mapping_mask[k]
+
+    sampling = MixedVariableSampling(mask, {
+        "bin-no-cross": get_sampling("bin_random"),
+        "real-no-cross": get_sampling("real_random"),
+        "int": get_sampling("int_random"),
+        "real": get_sampling("real_random")
+    })
+
+    crossover = MixedVariableCrossover(mask, {
+        "bin-no-cross": NoCrossover(),
+        "real-no-cross": NoCrossover(),
+        "int": get_crossover("int_sbx", prob=1.0, eta=3.0),
+        "real": get_crossover("real_sbx", prob=1.0, eta=3.0)
+    })
+
+    mutation = MixedVariableMutation(mask, {
+        "bin-no-cross": get_mutation("bin_bitflip", prob=0.01),
+        "real-no-cross": get_mutation("real_pm", eta=3.0),
         "int": get_mutation("int_pm", eta=3.0),
         "real": get_mutation("real_pm", eta=3.0),
     })

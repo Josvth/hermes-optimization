@@ -188,9 +188,11 @@ class ExtendedCombinedProblem(CombinedProblem):
             if b_s_array.size > 0:
                 f_latency = latency.compute_max_latency_passes(b_s_array, e_s_array, self.t_sim_s)
 
-        return f_throughput, f_latency, f_energy, f_pointing, \
-               b_s_array, e_s_array, linktime_s_array, vcm_array
+            return f_throughput, f_latency, f_energy, f_pointing, \
+                   b_s_array, e_s_array, linktime_s_array, vcm_array
 
+        return f_throughput, f_latency, f_energy, f_pointing, \
+               None, None, None, None
 
     def evaluate_unmasked(self, x):
 
