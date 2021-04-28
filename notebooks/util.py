@@ -5,6 +5,7 @@ from pymoo.model.result import Result
 import contact
 import energy
 import multi_carrier
+import visibility
 from pyreport import PlotUtil
 
 
@@ -133,8 +134,10 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
 
     plt.tight_layout()
 
-def plot_performance_iot(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1])):
+def plot_performance_iot(axs, problem, setting, res, case, target,
+                         scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]), throughput=True):
     f_throughput, f_latency, f_energy, f_pointing = recompute_obj(problem, res, scale_factors)
+
 
     ax = axs[0]
     ax.grid(True)
@@ -159,19 +162,23 @@ def plot_performance_iot(axs, problem, setting, res, case, target, scale_factors
     ax.set_axisbelow(True)
     ax.set_ylim([0, 100])
 
-    ax = axs[3] #axs[3].set_axis_off()
-    ax.grid(True)
-    ax.scatter(f_energy, f_throughput, marker='.', s=1)
-    ax.set_xlabel("Energy used [kJ / orbit]")
-    ax.set_ylabel("Throughput [GB / orbit]")
-    ax.set_axisbelow(True)
+    if throughput:
+        ax = axs[3] #axs[3].set_axis_off()
+        ax.grid(True)
+        ax.scatter(f_energy, f_throughput, marker='.', s=1)
+        ax.set_xlabel("Energy used [kJ / orbit]")
+        ax.set_ylabel("Throughput [GB / orbit]")
+        ax.set_axisbelow(True)
 
-    ax = axs[4] #axs[4].set_axis_off()
-    ax.grid(True)
-    ax.scatter(f_latency, f_throughput, marker='.', s=1)
-    ax.set_xlabel("Max latency [s]")
-    ax.set_ylabel("Throughput [GB / orbit]")
-    ax.set_axisbelow(True)
+        ax = axs[4] #axs[4].set_axis_off()
+        ax.grid(True)
+        ax.scatter(f_latency, f_throughput, marker='.', s=1)
+        ax.set_xlabel("Max latency [s]")
+        ax.set_ylabel("Throughput [GB / orbit]")
+        ax.set_axisbelow(True)
+    else:
+        axs[3].set_axis_off()
+        axs[4].set_axis_off()
 
     ax = axs[5]
     ax.legend(fontsize=8)
@@ -275,14 +282,16 @@ def plot_settings(axs, problem, setting, res, points = [], scale_factors=np.arra
             axs[4].scatter(vcm_array_list[ind], f_throughput[ind].repeat(len(vcm_array_list[ind])), color=point['kwargs']['color'], marker='.', s=1)
             axs[5].scatter(Pdiss[ind], f_throughput[ind].repeat(len(Pdiss[ind])), color=point['kwargs']['color'], marker='.', s=1)
 
-def plot_used_passes(case, instances_df, problem, x):
+def plot_used_passes(case, instances_df, problem, x, usefull_only = True):
 
     x_pass, x_Ptx_dBm, x_Gtx_dBi, x_B_Hz = get_selection(problem, x)
-    _, _, _, _, _, _, linktime_s_array, _ = problem.evaluate_unmasked_raw(x)
 
     pass_inds = np.nonzero(x_pass[0])[0]
-    # Filter out passes that don't contribute (i.e. zero link time) todo fix this in the optimization
-    pass_inds = pass_inds[np.nonzero(linktime_s_array)[0]]
+
+    if usefull_only:
+        _, _, _, _, _, _, linktime_s_array, _ = problem.evaluate_unmasked_raw(x)
+        # Filter out passes that don't contribute (i.e. zero link time) todo fix this in the optimization
+        pass_inds = pass_inds[np.nonzero(linktime_s_array)[0]]
 
     T_orbit = case['T_orbit_s']
     T_sim = case['T_sim_s']
@@ -340,6 +349,10 @@ def plot_power_energy(case, instances_df, problem, x, dt=1.0):
     Pmod = energy.modulator_power(Rb_bits_array)
     Pdiss = Pmod + Ppa
 
+    print("Max power: %0.2f W" % np.max(Pdiss))
+    print("Bandwidth: %.2f MHz" % (x_B_Hz / 1e6))
+    print("Max modcod: %d " % np.max(vcm_array))
+
     # Reconstruct time of flight vectors
     tofs_s = [None] * len(b_s_array)
 
@@ -378,3 +391,40 @@ def plot_power_energy(case, instances_df, problem, x, dt=1.0):
 
     plt.tight_layout()
 
+def plot_pointing(case, problem, x):
+
+    x_pass, x_Ptx_dBm, x_Gtx_dBi, x_B_Hz = get_selection(problem, x)
+    _, _, _, _, _, _, linktime_s_array, _ = problem.evaluate_unmasked_raw(x)
+
+    pass_inds = np.nonzero(x_pass[0])[0]
+    # Filter out passes that don't contribute (i.e. zero link time) todo fix this in the optimization
+    pass_inds = pass_inds[np.nonzero(linktime_s_array)[0]]
+
+    hpbw_rad = visibility.compute_hpbw(x_Gtx_dBi)
+
+    T_orbit = case['T_orbit_s']
+    T_sim = case['T_sim_s']
+
+    fig, ax = plt.subplots(figsize=(3.2, 2.4))
+
+    # Plot pointing angles
+    for pass_ind in pass_inds:
+        #ax.plot(problem.tof_s_list[pass_ind], np.rad2deg(problem.theta_rad_list[pass_ind]), linewidth=0.1, color='tab:grey')
+        pointing = np.maximum(np.rad2deg(problem.theta_rad_list[pass_ind] - 0.5 * hpbw_rad), 0.0)
+        ax.plot(problem.tof_s_list[pass_ind], pointing, linewidth=0.75, color='tab:blue')
+
+    ax.text(0.9, 0.9, '$G_{tx,0}$: %0.2f dBi, $\\theta_{hpbw}$: %0.2f°' % (x_Gtx_dBi, np.rad2deg(hpbw_rad)), transform=ax.transAxes, fontsize=7,
+            horizontalalignment='right',
+            verticalalignment='center',
+            bbox=dict(facecolor='white', edgecolor='black'))
+
+    ax.set_xlabel('Time of flight [s]')
+    ax.set_ylabel('Pointing from zenith [deg]')
+    ax.set_xlim((0, T_sim))
+    ax.set_ylim((0, 90))
+
+    plt.grid()
+    PlotUtil.apply_report_formatting()
+    fig.set_size_inches(3.2 * 2, 2.4, forward=True)
+
+    plt.tight_layout()

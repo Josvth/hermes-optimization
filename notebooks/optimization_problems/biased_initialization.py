@@ -62,7 +62,7 @@ def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399
         ax.set_xlabel('Passes used [.]')
         ax.set_ylabel('Maximum contact time [s]')
 
-        util.plot_used_passes(case, instances_df, x_pass[np.argmin(init_res.F[:, 0]), :])
+        util.plot_used_passes(case, instances_df, init_problem, init_res.X[np.argmin(init_res.F[:, 0]), :], usefull_only = False)
 
 
     repeats = int(np.ceil(pop_size / len(init_res.X)))
