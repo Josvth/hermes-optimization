@@ -1,6 +1,8 @@
 import numpy as np
 from pymoo.model.crossover import Crossover
+from pymoo.model.mutation import Mutation
 from pymoo.model.sampling import Sampling
+from pymoo.operators.crossover.half_uniform_crossover import HalfUniformCrossover
 from pymoo.util.normalization import denormalize
 
 
@@ -176,6 +178,117 @@ def design_vector_no_crossover_mut_scm(var_count, indices):
         "real-no-cross": get_mutation("real_pm", eta=3.0, prob=0.01),
         "int": get_mutation("int_pm", eta=3.0, prob=0.01),
         "real": get_mutation("real_pm", eta=3.0, prob=0.01),
+    })
+
+    return sampling, crossover, mutation
+
+class PassPowerSampling(Sampling):
+
+    def __init__(self, pass_sampling, power_sampling, **kwargs):
+        super().__init__()
+        self.pass_sampling = pass_sampling
+        self.power_sampling = power_sampling
+
+    def _do(self, problem, X, **kwargs):
+        pass
+        import warnings
+        warnings.error("NOT IMPLEMENTED YET")
+        return X
+
+class PassPowerCrossover(Crossover):
+
+    def __init__(self, pass_crossover=HalfUniformCrossover(), **kwargs):
+        super().__init__(2, 2, **kwargs)
+        self.pass_crossover = pass_crossover
+
+    def _do(self, problem, X, **kwargs):
+
+        n_parents, n_individuals, n_vars = X.shape
+
+        X_pass = X[:, :, :int(n_vars/2)].astype('bool')
+        X_power = X[:, :, int(n_vars/2):].astype('float')
+
+        _X_pass = self.pass_crossover._do(problem, X_pass)
+
+        only_a = X_pass[0, ...] & ~X_pass[1, ...] & _X_pass
+        only_b = ~X_pass[0, ...] & X_pass[1, ...] & _X_pass
+        both = X_pass[0, ...] & X_pass[1, ...] & _X_pass
+
+        _X_power = X_power
+        _X_power[only_a] = X_power[only_a]
+        _X_power[only_b] = X_power[only_b]
+        _X_power[both] = 10*np.log10((10**((X_power[both] - 30)/10) + 10**((X_power[both] - 30)/10))/2) + 30
+
+        _X = np.concatenate((_X_pass, _X_power), axis=2)
+
+        return _X
+
+class PassPowerMutation(Mutation):
+
+    def __init__(self, pass_mutation, power_mutation, **kwargs):
+        super().__init__()
+        self.pass_mutation = pass_mutation
+        self.power_mutation = power_mutation
+
+    def _do(self, problem, X, **kwargs):
+
+        n_individuals, n_vars = X.shape
+
+        X_pass = X[:, :int(n_vars / 2)]
+        X_power = X[:, int(n_vars / 2):]
+
+        # Change the problem variables to spoof the mutation function
+        _n_var, _xl, _xu = problem.n_var, problem.xl, problem.xu
+
+        problem.n_var, problem.xl, problem.xu = n_vars, _xl[:int(n_vars / 2)], _xu[:int(n_vars / 2)]
+        _X_pass = self.pass_mutation._do(problem, X_pass)
+
+        problem.n_var, problem.xl, problem.xu = n_vars, _xl[int(n_vars / 2):], _xu[int(n_vars / 2):]
+        _X_power = self.power_mutation._do(problem, X_power)
+
+        # reset the original bounds of the problem
+        problem.n_var = _n_var
+        problem.xl = _xl
+        problem.xu = _xu
+
+        _X = np.concatenate((_X_pass, _X_power), axis=1)
+
+        return  _X
+
+def design_vector_passpower_scm(var_count, indices, real_power=False):
+    from pymoo.operators.mixed_variable_operator import MixedVariableSampling, MixedVariableCrossover, \
+        MixedVariableMutation
+    from pymoo.factory import get_sampling, get_crossover, get_mutation
+
+    mapping_mask = dict()
+    mapping_mask['pass'] = "passpower"
+    mapping_mask['power'] = "passpower"
+    mapping_mask['antenna'] = "real"
+    mapping_mask['bandwidth'] = "int"
+    # mapping_mask['rolloff'] = "int"
+    # mapping_mask['modcod'] = "int"
+
+    mask = [None] * var_count
+    for k, v in indices.items():
+        for i in v:
+            mask[i] = mapping_mask[k]
+
+    sampling = MixedVariableSampling(mask, {
+        "passpower": PassPowerSampling(get_sampling("bin_random"),get_sampling("real_random")),
+        "int": get_sampling("int_random"),
+        "real": get_sampling("real_random")
+    })
+
+    crossover = MixedVariableCrossover(mask, {
+        "passpower": PassPowerCrossover(),
+        "int": get_crossover("int_sbx", prob=1.0, eta=3.0),
+        "real": get_crossover("real_sbx", prob=1.0, eta=3.0),
+    })
+
+    mutation = MixedVariableMutation(mask, {
+        "passpower": PassPowerMutation(get_mutation("bin_bitflip", prob=0.01), get_mutation("real_pm", eta=3.0)),
+        "int": get_mutation("int_pm", eta=3.0),
+        "real": get_mutation("real_pm", eta=3.0),
     })
 
     return sampling, crossover, mutation
