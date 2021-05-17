@@ -97,7 +97,7 @@ def recompute_all(problem, X, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]))
 def plot_performance(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1])):
     plot_performance_eo(axs, problem, setting, res, case, target, scale_factors)
 
-def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1])):
+def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]), plot_i=False):
     f_throughput, f_latency, f_energy, f_pointing = recompute_obj(problem, res, scale_factors)
 
     # Plotting
@@ -106,6 +106,9 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax = axs[0]
     ax.grid(True)
     ax.scatter(f_energy, f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(f_energy[i], f_throughput[i], f'{i}', fontsize=5)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Throughput [GB / orbit]")
     ax.set_axisbelow(True)
@@ -113,6 +116,9 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax = axs[1]
     ax.grid(True)
     ax.scatter(f_pointing, f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(f_pointing[i], f_throughput[i], f'{i}', fontsize=5)
     ax.set_xlabel("Pointing duty cycle [%]")
     ax.set_ylabel("Throughput [GB / orbit]")
     ax.set_xlim([0, 100])
@@ -121,6 +127,9 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax = axs[2]
     ax.grid(True)
     ax.scatter(f_energy, f_pointing, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(f_energy[i], f_pointing[i], f'{i}', fontsize=5)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Pointing duty cycle [%]")
     ax.set_ylim([0, 100])
@@ -303,7 +312,7 @@ def plot_used_passes(case, instances_df, problem, x, usefull_only = True):
         p = pass_df.index[0][0] - 1 # Pass index
         tof = pass_df.tof.values
         d = pass_df.d.values/1000
-        line, = ax.plot(tof, d, linewidth=0.1, color='tab:grey')
+        line, = ax.plot(tof, d, linewidth=0.1, color='tab:grey', alpha=0.5)
 
     # Plot used passes
     for i, pass_df in instances_df.groupby(level=0):
