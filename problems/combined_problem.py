@@ -133,6 +133,33 @@ class ExtendedCombinedProblem(CombinedProblem):
         super().__init__(instances_df, system_parameters, requirements, f_mask, *args, **kwargs)
         self.n_constr = self.n_constr - 1
 
+        self._tof_s_List = List(self.tof_s_list)
+        self._fspl_dB_List = List(self.fspl_dB_list)
+        self._theta_rad_List = List(self.theta_rad_list)
+        self._phi_rad_List = List(self.phi_rad_list)
+
+    # Correctly handle being pickled
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains
+        # all our instance attributes. Always use the dict.copy()
+        # method to avoid modifying the original state.
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state['_tof_s_List']
+        del state['_fspl_dB_List']
+        del state['_theta_rad_List']
+        del state['_phi_rad_List']
+        return state
+
+    def __setstate__(self, state):
+        # Restore instance attributes
+        self.__dict__.update(state)
+
+        self._tof_s_List = List(self.tof_s_list)
+        self._fspl_dB_List = List(self.fspl_dB_list)
+        self._theta_rad_List = List(self.theta_rad_list)
+        self._phi_rad_List = List(self.phi_rad_list)
+
     def evaluate_unmasked_raw(self, x):
         # Explode design vector
         design_vector = explode_design_vector(x, self.N_passes, self.x_indices)
@@ -148,10 +175,10 @@ class ExtendedCombinedProblem(CombinedProblem):
         eta_bitsym_array = np.squeeze(self.sys_param.eta_bitsym_array[:, carriers - 1])
         eta_maee_array = np.squeeze(self.sys_param.eta_maee_array[:, carriers - 1])
 
-        tof_s_list = List(self.tof_s_list)
-        fspl_dB_list = List(self.fspl_dB_list)
-        theta_rad_list = List(self.theta_rad_list)
-        phi_rad_list = List(self.phi_rad_list)
+        tof_s_list = self._tof_s_List
+        fspl_dB_list = self._fspl_dB_List
+        theta_rad_list = self._theta_rad_List
+        phi_rad_list = self._phi_rad_List
 
         # Downselect passes
         x_pass = contact.down_select_passes(x_pass, self.O_matrix)
@@ -181,7 +208,7 @@ class ExtendedCombinedProblem(CombinedProblem):
                                                              B_Hz, alpha, eta_bitsym_array[vcm_array])
 
             # Pointing
-            f_pointing, _ = pointing.compute_pointing_passes(
+            f_pointing, _ = pointing.compute_pointing_passes_no_rate(
                 pass_inds, tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi)
 
             # Latency

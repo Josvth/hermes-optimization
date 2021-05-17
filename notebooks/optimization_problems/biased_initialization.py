@@ -1,6 +1,7 @@
 from pymoo.algorithms.nsga3 import NSGA3
 from pymoo.algorithms.rnsga2 import RNSGA2
 from pymoo.algorithms.rnsga3 import RNSGA3
+from pymoo.algorithms.unsga3 import UNSGA3
 from pymoo.model.sampling import Sampling
 from pymoo.optimize import minimize
 from pymoo.util.termination.f_tol import MultiObjectiveSpaceToleranceTermination
@@ -10,7 +11,7 @@ from contact_problem import ContactProblemDownSelect
 from optimization_problems.design_vector import design_vector_default_scm
 import numpy as np
 
-def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399, plot = True, init='random'):
+def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399, init_pop_size = 400, init_offsprings=200, init_max_gen=1000, verbose = True, plot = True, init='random'):
 
     init_problem = ContactProblemDownSelect(instances_df, sys_param)
     sampling, crossover, mutation = design_vector_default_scm(init_problem.x_length, init_problem.x_indices)
@@ -18,14 +19,14 @@ def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399
     # NGSA-III optimization
     from pymoo.factory import get_reference_directions
     init_ref_dirs = get_reference_directions("das-dennis", 2, n_partitions=n_partitions)
-    init_pop_size = int(np.ceil(len(init_ref_dirs) / 100) * 100)
-    init_n_offsprings = int(np.ceil(len(init_ref_dirs) / 100) * 100 / 4)
+    init_pop_size = init_pop_size
+    init_n_offsprings = init_offsprings
 
     print("init_ref_dirs: %d" % len(init_ref_dirs))
     print("init_pop_size: %d" % init_pop_size)
     print("init_n_offsprings: %d" % init_n_offsprings)
 
-    algorithm = NSGA3(
+    algorithm = UNSGA3(
         pop_size=init_pop_size,
         n_offsprings=init_n_offsprings,
         sampling=np.zeros((init_pop_size, init_problem.x_length)),
@@ -38,7 +39,7 @@ def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399
     termination = MultiObjectiveSpaceToleranceTermination(tol=0.0001,
                                                           n_last=50,
                                                           nth_gen=10,
-                                                          n_max_gen=2500,
+                                                          n_max_gen=init_max_gen,
                                                           n_max_evals=None)
 
     print("Running initial conditions optimization...")
@@ -46,7 +47,7 @@ def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399
                         algorithm,
                         termination,
                         seed=1,
-                        verbose=True,
+                        verbose=verbose,
                         copy_algorithm=False,
                         )
 
@@ -63,7 +64,10 @@ def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399
         ax.set_ylabel('Maximum contact time [s]')
 
         util.plot_used_passes(case, instances_df, init_problem, init_res.X[np.argmin(init_res.F[:, 0]), :], usefull_only = False)
-
+        i = init_res.F[:, 1] == 1
+        util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
+        i = init_res.F[:, 1] == 5
+        util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
 
     repeats = int(np.ceil(pop_size / len(init_res.X)))
     x_pass_pop = np.tile(x_pass, (repeats, 1))

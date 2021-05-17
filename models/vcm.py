@@ -34,7 +34,7 @@ def compute_throughput_vcm(tof_s, fspl_dB, Ptx_dBm, Gtx_dBi, GT_dBK, B_Hz, alpha
     return b_s, e_s, margin_dB, link_time_s, throughput_bits, modcod_sel
 
 
-@njit(parallel=True)
+@njit
 def compute_passes_throughput(pass_inds, tof_s_list, fspl_dB_list, Ptx_dBm_array, Gtx_dBi, GT_dBK, B_Hz,
                               alpha, EsN0_req_dB_array, eta_bitsym_array, min_margin_dB):
     """
@@ -58,7 +58,7 @@ def compute_passes_throughput(pass_inds, tof_s_list, fspl_dB_list, Ptx_dBm_array
     throughput_bits_array = np.empty(len(pass_inds), np.float64)
     vcm_array = np.empty(len(pass_inds), np.int32)
 
-    for i in prange(len(pass_inds)):
+    for i in range(len(pass_inds)):
         p = pass_inds[i]
 
         b_s_array[i], e_s_array[i], _, linktime_s_array[i], throughput_bits_array[i], vcm_array[

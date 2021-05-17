@@ -27,7 +27,6 @@ def compute_pointing(tof_s_array, theta_rad_array, phi_rad_array, Gtx_dBi):
 
     return f_pointing, np.maximum(theta_rate_max_rad, phi_rate_max_rad)
 
-
 @njit(parallel=True)
 def compute_pointing_passes(pass_inds, tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi):
     f_pointing_array = np.zeros(len(pass_inds))
@@ -39,3 +38,25 @@ def compute_pointing_passes(pass_inds, tof_s_list, theta_rad_list, phi_rad_list,
             tof_s_list[p], theta_rad_list[p], phi_rad_list[p], Gtx_dBi)
 
     return np.sum(f_pointing_array), rate_max_rad_array
+
+# Todo fix rate calculation and constraining
+@njit
+def compute_pointing_no_rate(tof_s_array, theta_rad_array, phi_rad_array, Gtx_dBi):
+    theta_pointing_rad_array = compute_antenna_pointing(theta_rad_array, Gtx_dBi)
+
+    dt = np.diff(tof_s_array)
+    f_pointing = np.sum((theta_pointing_rad_array[1:] > 0) * dt)
+
+    return f_pointing, 0.0
+
+@njit
+def compute_pointing_passes_no_rate(pass_inds, tof_s_list, theta_rad_list, phi_rad_list, Gtx_dBi):
+    f_pointing_array = np.empty(len(pass_inds), np.float64)
+    #rate_max_rad_array = np.zeros(len(pass_inds))
+
+    for i in range(len(pass_inds)):
+        p = pass_inds[i]
+        f_pointing_array[i], _ = compute_pointing_no_rate(
+            tof_s_list[p], theta_rad_list[p], phi_rad_list[p], Gtx_dBi)
+
+    return np.sum(f_pointing_array), 0.0

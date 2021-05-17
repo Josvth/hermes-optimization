@@ -70,8 +70,8 @@ def compute_passes_throughput(tof_s_list, fspl_dB_list, Ptx_dBm_list, Gtx_dBi, G
     :param margin_dB: Required link-margin
     :return:
     """
-    linktime_s_array = np.zeros(len(tof_s_list))
-    throughput_bits_array = np.zeros(len(tof_s_list))
+    linktime_s_array = np.empty(len(tof_s_list), np.float64)
+    throughput_bits_array = np.empty(len(tof_s_list), np.float64)
 
     for i in prange(len(throughput_bits_array)):
         linktime_s_array[i], throughput_bits_array[i] = compute_throughput(tof_s_list[i], fspl_dB_list[i],

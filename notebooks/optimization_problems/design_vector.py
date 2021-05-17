@@ -182,6 +182,7 @@ def design_vector_no_crossover_mut_scm(var_count, indices):
 
     return sampling, crossover, mutation
 
+# Custom cross-over
 class PassPowerSampling(Sampling):
 
     def __init__(self, pass_sampling, power_sampling, **kwargs):
@@ -286,7 +287,45 @@ def design_vector_passpower_scm(var_count, indices, real_power=False):
     })
 
     mutation = MixedVariableMutation(mask, {
-        "passpower": PassPowerMutation(get_mutation("bin_bitflip", prob=0.01), get_mutation("real_pm", eta=3.0)),
+        "passpower": PassPowerMutation(get_mutation("bin_bitflip", prob=0.01), get_mutation("real_pm", prob=0.2, eta=3.0)),
+        "int": get_mutation("int_pm", eta=3.0),
+        "real": get_mutation("real_pm", eta=3.0),
+    })
+
+    return sampling, crossover, mutation
+
+def design_vector_nopasspower_scm(var_count, indices, real_power=False):
+    from pymoo.operators.mixed_variable_operator import MixedVariableSampling, MixedVariableCrossover, \
+        MixedVariableMutation
+    from pymoo.factory import get_sampling, get_crossover, get_mutation
+
+    mapping_mask = dict()
+    mapping_mask['pass'] = "passpower"
+    mapping_mask['power'] = "passpower"
+    mapping_mask['antenna'] = "real"
+    mapping_mask['bandwidth'] = "int"
+    # mapping_mask['rolloff'] = "int"
+    # mapping_mask['modcod'] = "int"
+
+    mask = [None] * var_count
+    for k, v in indices.items():
+        for i in v:
+            mask[i] = mapping_mask[k]
+
+    sampling = MixedVariableSampling(mask, {
+        "passpower": PassPowerSampling(get_sampling("bin_random"),get_sampling("real_random")),
+        "int": get_sampling("int_random"),
+        "real": get_sampling("real_random")
+    })
+
+    crossover = MixedVariableCrossover(mask, {
+        "passpower": PassPowerCrossover(pass_crossover=NoCrossover()),
+        "int": get_crossover("int_sbx", prob=1.0, eta=3.0),
+        "real": get_crossover("real_sbx", prob=1.0, eta=3.0),
+    })
+
+    mutation = MixedVariableMutation(mask, {
+        "passpower": PassPowerMutation(get_mutation("bin_bitflip", prob=0.0), get_mutation("real_pm", prob=0.2, eta=3.0)),
         "int": get_mutation("int_pm", eta=3.0),
         "real": get_mutation("real_pm", eta=3.0),
     })

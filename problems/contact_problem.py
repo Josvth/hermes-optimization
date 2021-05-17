@@ -84,3 +84,4 @@ class ContactProblemDownSelect(Problem):
         f_pass = np.sum(x_pass)
 
         out["F"] = [f_contact, f_pass]
+        #out["G"] = 1 * (f_pass <= 0)
