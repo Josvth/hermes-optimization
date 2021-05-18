@@ -66,6 +66,12 @@ def max_contact_biased(instances_df, sys_param, case, pop_size, n_partitions=399
         util.plot_used_passes(case, instances_df, init_problem, init_res.X[np.argmin(init_res.F[:, 0]), :], usefull_only = False)
         i = init_res.F[:, 1] == 1
         util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
+        i = init_res.F[:, 1] == 2
+        util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
+        i = init_res.F[:, 1] == 3
+        util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
+        i = init_res.F[:, 1] == 4
+        util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
         i = init_res.F[:, 1] == 5
         util.plot_used_passes(case, instances_df, init_problem, init_res.X[i, :], usefull_only=False)
 

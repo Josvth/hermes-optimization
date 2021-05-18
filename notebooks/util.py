@@ -108,7 +108,7 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax.scatter(f_energy, f_throughput, marker='.', s=1)
     if plot_i:
         for i in range(len(f_energy)):
-            ax.text(f_energy[i], f_throughput[i], f'{i}', fontsize=5)
+            ax.text(f_energy[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Throughput [GB / orbit]")
     ax.set_axisbelow(True)
@@ -118,7 +118,7 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax.scatter(f_pointing, f_throughput, marker='.', s=1)
     if plot_i:
         for i in range(len(f_energy)):
-            ax.text(f_pointing[i], f_throughput[i], f'{i}', fontsize=5)
+            ax.text(f_pointing[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel("Pointing duty cycle [%]")
     ax.set_ylabel("Throughput [GB / orbit]")
     ax.set_xlim([0, 100])
@@ -129,7 +129,7 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax.scatter(f_energy, f_pointing, marker='.', s=1)
     if plot_i:
         for i in range(len(f_energy)):
-            ax.text(f_energy[i], f_pointing[i], f'{i}', fontsize=5)
+            ax.text(f_energy[i], f_pointing[i], f'{i}', fontsize=6)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Pointing duty cycle [%]")
     ax.set_ylim([0, 100])
