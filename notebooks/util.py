@@ -143,33 +143,51 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
 
     plt.tight_layout()
 
-def plot_performance_iot(axs, problem, setting, res, case, target,
-                         scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]), throughput=True):
-    f_throughput, f_latency, f_energy, f_pointing = recompute_obj(problem, res, scale_factors)
+def plot_performance_iot(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]),
+                         color = None, alpha=0.5, plot_i = False, throughput=True):
 
+    f_throughput, f_latency, f_energy, f_pointing = recompute_obj(problem, res, scale_factors)
 
     ax = axs[0]
     ax.grid(True)
-    ax.scatter(f_energy, f_latency, marker='.', s=1)
+    s = ax.scatter(f_energy, f_latency, marker='.', s=1)
+    if color:
+        s.set_color(color)
+        s.set_alpha(alpha)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(f_energy[i], f_latency[i], f'{i}', fontsize=6)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Max Latency [s]")
     ax.set_axisbelow(True)
 
     ax = axs[1]
     ax.grid(True)
-    ax.scatter(f_pointing, f_latency, marker='.', s=1)
+    s= ax.scatter(f_pointing, f_latency, marker='.', s=1)
+    if color:
+        s.set_color(color)
+        s.set_alpha(alpha)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(f_pointing[i], f_latency[i], f'{i}', fontsize=6)
     ax.set_xlabel("Pointing duty cycle [%]")
     ax.set_ylabel("Max Latency [s]")
-    ax.set_xlim([0, 100])
+    ax.set_xlim([-2.5, 102.5])
     ax.set_axisbelow(True)
 
     ax = axs[2]
     ax.grid(True)
-    ax.scatter(f_energy, f_pointing, marker='.', s=1)
+    s = ax.scatter(f_energy, f_pointing, marker='.', s=1)
+    if color:
+        s.set_color(color)
+        s.set_alpha(alpha)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(f_energy[i], f_pointing[i], f'{i}', fontsize=6)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Pointing duty cycle [%]")
     ax.set_axisbelow(True)
-    ax.set_ylim([0, 100])
+    ax.set_ylim([-2.5, 102.5])
 
     if throughput:
         ax = axs[3] #axs[3].set_axis_off()
@@ -361,7 +379,6 @@ def plot_power_energy(case, instances_df, problem, x, dt=1.0):
     print("Max power: %0.2f W" % np.max(Pdiss))
     print("Bandwidth: %.2f MHz" % (x_B_Hz / 1e6))
     print("Max modcod: %d " % np.max(vcm_array))
-
     # Reconstruct time of flight vectors
     tofs_s = [None] * len(b_s_array)
 
@@ -376,6 +393,8 @@ def plot_power_energy(case, instances_df, problem, x, dt=1.0):
     for i in range(len(tofs_s)):
         Pdiss_vs_tof[tofs_s[i].astype('int')] = Pdiss[i]
     ax.step(all_tofs_s, Pdiss_vs_tof, linewidth=0.75, color='coral')
+
+    print(f"Transmission duty cycle: {np.sum(Pdiss_vs_tof > 0)/len(all_tofs_s) * 100}\%")
 
     PlotUtil.apply_report_formatting()
 
@@ -430,7 +449,7 @@ def plot_pointing(case, problem, x):
     ax.set_xlabel('Time of flight [s]')
     ax.set_ylabel('Pointing from zenith [deg]')
     ax.set_xlim((0, T_sim))
-    ax.set_ylim((0, 90))
+    ax.set_ylim((-2.5, 92.5))
 
     plt.grid()
     PlotUtil.apply_report_formatting()
