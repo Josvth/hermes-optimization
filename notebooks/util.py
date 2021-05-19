@@ -95,9 +95,13 @@ def recompute_all(problem, X, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]))
 
 ## Plotting
 def plot_performance(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1])):
+    import warnings
+    warnings.warn("plot_performance is deprecated, use plot_performance_eo or plot_performance_iot instead", DeprecationWarning)
     plot_performance_eo(axs, problem, setting, res, case, target, scale_factors)
 
-def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]), plot_i=False):
+def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]),
+                        color = None, alpha=0.75, plot_i=False):
+
     f_throughput, f_latency, f_energy, f_pointing = recompute_obj(problem, res, scale_factors)
 
     # Plotting
@@ -105,17 +109,24 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
 
     ax = axs[0]
     ax.grid(True)
-    ax.scatter(f_energy, f_throughput, marker='.', s=1)
+    s = ax.scatter(f_energy, f_throughput, marker='.', s=1)
+    if color:
+        s.set_color(color)
+        s.set_alpha(alpha)
     if plot_i:
         for i in range(len(f_energy)):
             ax.text(f_energy[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Throughput [GB / orbit]")
     ax.set_axisbelow(True)
+    ax.set_title('(a)', fontsize=8)
 
     ax = axs[1]
     ax.grid(True)
-    ax.scatter(f_pointing, f_throughput, marker='.', s=1)
+    s = ax.scatter(f_pointing, f_throughput, marker='.', s=1)
+    if color:
+        s.set_color(color)
+        s.set_alpha(alpha)
     if plot_i:
         for i in range(len(f_energy)):
             ax.text(f_pointing[i], f_throughput[i], f'{i}', fontsize=6)
@@ -123,10 +134,14 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax.set_ylabel("Throughput [GB / orbit]")
     ax.set_xlim([0, 100])
     ax.set_axisbelow(True)
+    ax.set_title('(b)', fontsize=8)
 
     ax = axs[2]
     ax.grid(True)
-    ax.scatter(f_energy, f_pointing, marker='.', s=1)
+    s = ax.scatter(f_energy, f_pointing, marker='.', s=1)
+    if color:
+        s.set_color(color)
+        s.set_alpha(alpha)
     if plot_i:
         for i in range(len(f_energy)):
             ax.text(f_energy[i], f_pointing[i], f'{i}', fontsize=6)
@@ -134,6 +149,7 @@ def plot_performance_eo(axs, problem, setting, res, case, target, scale_factors=
     ax.set_ylabel("Pointing duty cycle [%]")
     ax.set_ylim([0, 100])
     ax.set_axisbelow(True)
+    ax.set_title('(c)', fontsize=8)
 
     axs[3].set_axis_off()
     axs[4].set_axis_off()
