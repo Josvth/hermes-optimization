@@ -268,28 +268,34 @@ def plot_settings(axs, problem, setting, res, points = [], scale_factors=np.arra
     ax.set_xlabel('$P_{tx, max}$ [dBm]')
     ax.set_ylabel('Throughput [GB / orbit]')
 
-    # Antenna gain
+    # Minimum Tx power
     ax = axs[2]
+    ax.scatter(np.nanmin(x_Ptx_dBm, axis=1), f_throughput, marker='.', s=1)
+    ax.set_xlabel('$P_{tx, min}$ [dBm]')
+    ax.set_ylabel('Throughput [GB / orbit]')
+
+    # Antenna gain
+    ax = axs[3]
     ax.scatter(x_Gtx_dBi, f_throughput, marker='.', s=1)
     ax.set_xlabel('$G_{tx}$ [dBi]')
     ax.set_ylabel('Throughput [GB / orbit]')
 
     # Bandwidth
-    ax = axs[3]
+    ax = axs[4]
     ax.scatter(x_B_Hz / 1e6, f_throughput, marker='.', s=1)
     ax.set_xlabel('B [MHz]')
     ax.set_ylabel('Throughput [GB / orbit]')
     ax.set_xlim(0, 310)
 
     # VCM
-    ax = axs[4]
+    ax = axs[5]
     for i in range(len(f_throughput)):
         ax.scatter(vcm_array_list[i], f_throughput[i].repeat(len(vcm_array_list[i])), color='tab:blue', marker='.', s=1)
     ax.set_xlabel('MODCODs used [.]')
     ax.set_ylabel('Throughput [GB / orbit]')
 
     # Maximum power dissipated
-    ax = axs[5]
+    ax = axs[6]
     Pdiss = [None] * len(f_throughput)
 
     for i in range(len(f_throughput)):
@@ -320,10 +326,11 @@ def plot_settings(axs, problem, setting, res, points = [], scale_factors=np.arra
             ind = point['ind']
             axs[0].scatter(np.sum(x_pass[ind, :]), f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
             axs[1].scatter(np.nanmax(x_Ptx_dBm[ind, :]), f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
-            axs[2].scatter(x_Gtx_dBi[ind], f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
-            axs[3].scatter(x_B_Hz[ind] / 1e6, f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
-            axs[4].scatter(vcm_array_list[ind], f_throughput[ind].repeat(len(vcm_array_list[ind])), color=point['kwargs']['color'], marker='.', s=1)
-            axs[5].scatter(Pdiss[ind], f_throughput[ind].repeat(len(Pdiss[ind])), color=point['kwargs']['color'], marker='.', s=1)
+            axs[2].scatter(np.nanmin(x_Ptx_dBm[ind, :]), f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
+            axs[3].scatter(x_Gtx_dBi[ind], f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
+            axs[4].scatter(x_B_Hz[ind] / 1e6, f_throughput[ind], marker='.', s=1, color=point['kwargs']['color'])
+            axs[5].scatter(vcm_array_list[ind], f_throughput[ind].repeat(len(vcm_array_list[ind])), color=point['kwargs']['color'], marker='.', s=1)
+            axs[6].scatter(Pdiss[ind], f_throughput[ind].repeat(len(Pdiss[ind])), color=point['kwargs']['color'], marker='.', s=1)
 
 def plot_used_passes(case, instances_df, problem, x, usefull_only = True):
 
