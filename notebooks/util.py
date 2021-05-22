@@ -176,6 +176,7 @@ def plot_performance_iot(axs, problem, setting, res, case, target, scale_factors
     ax.set_xlabel("Energy used [kJ / orbit]")
     ax.set_ylabel("Max Latency [s]")
     ax.set_axisbelow(True)
+    ax.set_title('(a)', fontsize=8)
 
     ax = axs[1]
     ax.grid(True)
@@ -190,6 +191,7 @@ def plot_performance_iot(axs, problem, setting, res, case, target, scale_factors
     ax.set_ylabel("Max Latency [s]")
     ax.set_xlim([-2.5, 102.5])
     ax.set_axisbelow(True)
+    ax.set_title('(b)', fontsize=8)
 
     ax = axs[2]
     ax.grid(True)
@@ -204,6 +206,7 @@ def plot_performance_iot(axs, problem, setting, res, case, target, scale_factors
     ax.set_ylabel("Pointing duty cycle [%]")
     ax.set_axisbelow(True)
     ax.set_ylim([-2.5, 102.5])
+    ax.set_title('(c)', fontsize=8)
 
     if throughput:
         ax = axs[3] #axs[3].set_axis_off()
@@ -251,7 +254,7 @@ def plot_points_eo(axs, points, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1]
 
     axs[5].legend(fontsize=8)
 
-def plot_settings(axs, problem, setting, res, points = [], scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1])):
+def plot_settings(axs, problem, setting, res, points = [], plot_i=False, scale_factors=np.array([1 / -1e9, 1, 1 / 1e3, 1])):
 
     x_pass, x_Ptx_dBm, x_Gtx_dBi, x_B_Hz = get_selection(problem, res.X)
     f_throughput, f_latency, f_energy, f_pointing, vcm_array_list = recompute_all(problem, res.X, scale_factors)
@@ -259,30 +262,45 @@ def plot_settings(axs, problem, setting, res, points = [], scale_factors=np.arra
     # Passes uses
     ax = axs[0]
     ax.scatter(np.sum(x_pass, axis=1), f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(np.sum(x_pass, axis=1)[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel('Passes used')
     ax.set_ylabel('Throughput [GB / orbit]')
 
     # Maximum Tx power
     ax = axs[1]
     ax.scatter(np.nanmax(x_Ptx_dBm, axis=1), f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(np.nanmax(x_Ptx_dBm, axis=1)[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel('$P_{tx, max}$ [dBm]')
     ax.set_ylabel('Throughput [GB / orbit]')
 
     # Minimum Tx power
     ax = axs[2]
     ax.scatter(np.nanmin(x_Ptx_dBm, axis=1), f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(np.nanmin(x_Ptx_dBm, axis=1)[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel('$P_{tx, min}$ [dBm]')
     ax.set_ylabel('Throughput [GB / orbit]')
 
     # Antenna gain
     ax = axs[3]
     ax.scatter(x_Gtx_dBi, f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(x_Gtx_dBi[i], f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel('$G_{tx}$ [dBi]')
     ax.set_ylabel('Throughput [GB / orbit]')
 
     # Bandwidth
     ax = axs[4]
     ax.scatter(x_B_Hz / 1e6, f_throughput, marker='.', s=1)
+    if plot_i:
+        for i in range(len(f_energy)):
+            ax.text(x_B_Hz[i] / 1e6, f_throughput[i], f'{i}', fontsize=6)
     ax.set_xlabel('B [MHz]')
     ax.set_ylabel('Throughput [GB / orbit]')
     ax.set_xlim(0, 310)
@@ -332,7 +350,7 @@ def plot_settings(axs, problem, setting, res, points = [], scale_factors=np.arra
             axs[5].scatter(vcm_array_list[ind], f_throughput[ind].repeat(len(vcm_array_list[ind])), color=point['kwargs']['color'], marker='.', s=1)
             axs[6].scatter(Pdiss[ind], f_throughput[ind].repeat(len(Pdiss[ind])), color=point['kwargs']['color'], marker='.', s=1)
 
-def plot_used_passes(case, instances_df, problem, x, usefull_only = True):
+def plot_used_passes(case, instances_df, problem, x, usefull_only = True, labelpad=4):
 
     x_pass, x_Ptx_dBm, x_Gtx_dBi, x_B_Hz = get_selection(problem, x)
 
@@ -364,7 +382,7 @@ def plot_used_passes(case, instances_df, problem, x, usefull_only = True):
             line, = ax.plot(tof, d, linewidth=0.5, color='tab:red')
 
     ax.set_xlabel('Time of flight [s]')
-    ax.set_ylabel('Range [km]')
+    ax.set_ylabel('Range [km]', labelpad=labelpad)
     ax.set_xlim((0, T_sim))
 
     plt.grid()
